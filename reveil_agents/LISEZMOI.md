@@ -1,4 +1,10 @@
-# Relais GitHub des agents — 1.8.2
+# Relais GitHub des agents — 1.8.8
+
+## 1.8.8 — Relais en conversations temporaires
+
+Les cases Programmeur et Vérificateur démarrent maintenant un véritable chat temporaire ChatGPT avec `/?temporary-chat=true` dans l’onglet affecté, plutôt qu'une nouvelle conversation enregistrée. Le mode temporaire est obligatoire avant l'envoi et lors de l'acquisition du `/c/...` final. Aucun renvoi automatique et aucun repli vers un chat normal lorsque ce mode manque. Les reçus GitHub restent persistants. Conserver l'onglet ouvert jusqu'à la livraison ; un chat temporaire non enregistré n'est pas récupérable via l'historique. L'Architecte conserve son fil permanent. Version du manifeste et du service : 1.8.8.
+
+## Historique — version 1.8.2
 
 ## Version 1.8.2 — cadrans et routage QA .77
 

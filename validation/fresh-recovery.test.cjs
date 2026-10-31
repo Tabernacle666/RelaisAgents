@@ -12,7 +12,7 @@ const F=vm.runInContext('FreshChat',c),D=vm.runInContext('Delivery',c);
 const job={role:'dev',signal:'authorization',value:{cycle_id:'cycle-1',billet:'billet-1',source_sha:'a'.repeat(40)}};
 (async()=>{
  const initial=await F.prepare({...tab},settings,job,db.runtime);
- assert.equal(navs,1);assert.equal(tab.title,'ChatGPT','titre provisoire autorisé');
+ assert.equal(navs,1);assert.equal(tab.url,'https://chatgpt.com/?temporary-chat=true');assert.equal(tab.title,'ChatGPT','titre provisoire autorisé');
  assert.equal(initial.model.verified,false,'modèle non vérifiable = autorisé');
  assert.equal(initial.pending.phase,'ready');
  // Reprise d'une navigation déjà enregistrée, même si « Démarrer » a changé
@@ -28,9 +28,10 @@ const job={role:'dev',signal:'authorization',value:{cycle_id:'cycle-1',billet:'b
  const attempt={role:'dev',destination,receiptKey,receiptToken:token,activationId:db.runtime.activationId,fresh:true,jobId:F.jobId(settings,job)};
  assert.equal((await D.permit(attempt,tab.url,41)).ok,false,'autre onglet interdit');
  assert.equal((await D.permit(attempt,'https://chatgpt.com/work',42)).ok,false,'Work interdit');
+ assert.equal((await D.permit(attempt,'https://chatgpt.com/',42)).ok,false,'chat normal interdit');
  assert.equal((await D.permit(attempt,tab.url,42)).ok,true,'même onglet autorisé une seule fois');
  await D.finish(receiptKey,token,{status:'Clic effectué'});
- tab.url='https://chatgpt.com/c/real-123';tab.title='Le nouveau Programmeur';
+ tab.url='https://chatgpt.com/c/real-123?temporary-chat=true';tab.title='Le nouveau Programmeur';
  const canonical=await F.complete('dev',job,settings,db.runtime,true);
  assert.equal((await F.state('dev')).phase,'canonical');
  // Simulate a restart after the receipt moved, before settings are finalized.

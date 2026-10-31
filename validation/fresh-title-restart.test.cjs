@@ -7,7 +7,7 @@ const {harness}=require('./delivery.test.cjs');
   h.db.settings.devFresh=true;
   h.db.settings.devTitle='Ancien titre de conversation';
   const oldUrl=h.db.settings.devUrl;
-  const tab={id:1,url:'https://chatgpt.com/',title:'ChatGPT',status:'complete'};
+  const tab={id:1,url:'https://chatgpt.com/?temporary-chat=true',title:'ChatGPT',status:'complete'};
   const originalGet=h.c.chrome.tabs.get;
   const originalQuery=h.c.chrome.tabs.query;
   const originalExec=h.c.chrome.scripting.executeScript;
@@ -24,7 +24,7 @@ const {harness}=require('./delivery.test.cjs');
     assert.equal(permit.ok,true,'autorisation dans le même onglet');
     if(a.fresh){
      sends++;
-     tab.url='https://chatgpt.com/c/new-dev-'+phase;
+     tab.url='https://chatgpt.com/c/new-dev-'+phase+'?temporary-chat=true';
      // ChatGPT peut garder le titre générique pendant plusieurs secondes.
      tab.title='ChatGPT';
     }else{appends++;}
@@ -39,7 +39,7 @@ const {harness}=require('./delivery.test.cjs');
   await h.poll();
   assert.equal(navs,0,'reprise sans renavigation');
   assert.equal(sends,1,JSON.stringify(h.db.githubState));
-  assert.equal(h.db.settings.devUrl,tab.url,'URL /c/ acquise malgré le titre temporaire');
+  assert.equal(h.db.settings.devUrl,tab.url.split('?')[0],'URL /c/ acquise malgré le titre temporaire');
   assert.equal(h.db.settings.devTitle,'','titre provisoire non sauvegardé comme identité');
   assert.deepEqual(Object.keys(h.db.freshPending||{}),[]);
   for(let i=0;i<2;i++)await h.poll();

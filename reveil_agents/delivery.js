@@ -17,7 +17,7 @@ const Delivery=(()=>{
   const common=old&&old.token===a.receiptToken&&old.state==='prepared'&&old.role===a.role&&old.destination===a.destination&&r.enabled&&s.mode==='github'&&r.activationId===a.activationId&&ChatConversations.key(s[a.role+'Url'])===a.destination;
   const pending=freshPending[a.role];
   const standard=!a.fresh&&ChatConversations.key(senderUrl)===a.destination;
-  const fresh=a.fresh===true&&['dev','qa'].includes(a.role)&&s[a.role+'Fresh']===true&&pending&&pending.role===a.role&&pending.phase==='ready'&&pending.activationId===a.activationId&&pending.tabId===senderTabId&&pending.previousUrl===a.destination&&pending.jobId===a.jobId&&FreshChat.isBlank(senderUrl);
+  const fresh=a.fresh===true&&['dev','qa'].includes(a.role)&&s[a.role+'Fresh']===true&&pending&&pending.role===a.role&&pending.phase==='ready'&&pending.activationId===a.activationId&&pending.tabId===senderTabId&&pending.previousUrl===a.destination&&pending.jobId===a.jobId&&FreshChat.isBlank(senderUrl)&&FreshChat.isTemporary(senderUrl);
   if(!common||!(standard||fresh))return {ok:false};
   return {ok:true,entry:{...old,state:'committing',priseId:typeof a.actualPriseId==='string'?a.actualPriseId:old.priseId,clickAuthorizedAt:Date.now()}};
  });

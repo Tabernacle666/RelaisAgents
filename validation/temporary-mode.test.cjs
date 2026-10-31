@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync(__dirname+'/../reveil_agents/fresh-chat.js','utf8');
+const context={URL,Promise};vm.createContext(context);vm.runInContext(source,context);
+const temporary=vm.runInContext('FreshChat.isTemporary',context);
+const blank=vm.runInContext('FreshChat.isBlank',context);
+assert.equal(temporary('https://chatgpt.com/?temporary-chat=true'),true);
+assert.equal(temporary('https://chatgpt.com/c/session?temporary-chat=true'),true);
+assert.equal(temporary('https://chatgpt.com/'),false,'un chat ordinaire n’est pas temporaire');
+assert.equal(temporary('https://chatgpt.com/c/session'),false,'marqueur manquant');
+assert.equal(temporary('https://chatgpt.com/work?temporary-chat=true'),false);
+assert.equal(temporary('https://example.com/?temporary-chat=true'),false);
+assert.equal(blank('https://chatgpt.com/?temporary-chat=true'),true);
+console.log('PASS mode temporaire reconnu, chat ordinaire et Work refusés.');

@@ -1,10 +1,10 @@
-# Relais GitHub des agents — outils de gestion
+# RelaisAgents — outils de gestion (1.8.8)
 
-Branche `outils-gestion` du dépôt `Tabernacle666/ConsoleVR`. **Branche autonome pour l'extension Edge et son observateur** : aucun fichier de cette branche n'a besoin d'être fusionné dans `main` ni `dev`.
+Dépôt autonome `Tabernacle666/RelaisAgents`, branche `main`. L’extension Edge et son observatoire ne doivent pas être fusionnés dans le code de ConsoleVR.
 
 ## Contenu
 
-- `reveil_agents/manifest.json`, `reveil_agents/service-worker.js` et modules JavaScript : extension Edge/Chromium Manifest V3, version **1.8.6**.
+- `reveil_agents/manifest.json`, `reveil_agents/service-worker.js` et modules JavaScript : extension Edge/Chromium Manifest V3, version **1.8.8**.
 - `reveil_agents/dashboard.html`, `reveil_agents/dashboard.js`, `reveil_agents/gauge-data.js`, `reveil_agents/gantt-data.js`, `reveil_agents/progress-data.js`, `reveil_agents/telemetry-data.js` : observateur, cadrans et instrument personnalisable (10 métriques, 5 simultanées).
 - `validation/` : tests unitaires et de routage, fixtures et résultats de référence ; ces fichiers n'appartiennent pas à la distribution du projet ConsoleVR.
 - `LISEZMOI.md` : documentation et historique de l'extension.
@@ -12,18 +12,22 @@ Branche `outils-gestion` du dépôt `Tabernacle666/ConsoleVR`. **Branche autonom
 ## Synchroniser la branche seulement
 
 ```powershell
-git clone --branch outils-gestion --single-branch https://github.com/Tabernacle666/ConsoleVR.git D:\GITLINK\RelaisAgents
+git clone --branch main --single-branch https://github.com/Tabernacle666/RelaisAgents.git D:\GITLINK\RelaisAgents
 ```
 
 Pour les mises à jour suivantes dans ce dossier :
 
 ```powershell
-git pull --ff-only origin outils-gestion
+git pull --ff-only origin main
 ```
 
 Le sous-dossier `reveil_agents/` du clone est **directement chargeable** via Edge → `edge://extensions` → Mode développeur → Charger l'extension non empaquetée. Sélectionner `D:\GITLINK\RelaisAgents\\reveil_agents` (il contient `manifest.json`).
 
 **Attention aux reçus existants** : changer le chemin d'une extension non empaquetée peut changer son identifiant Edge et donc son espace `chrome.storage.local`. Pour préserver conversations, réglages et reçus, privilégier le même chemin de dossier qu'avec l'extension déjà chargée, ou conserver l'ancienne extension active jusqu'à la migration volontaire des réglages. Ne pas effacer les reçus pour débloquer un cycle.
+
+## Chats temporaires (1.8.8)
+
+Cocher Programmeur ou Vérificateur crée un chat temporaire ChatGPT (`/?temporary-chat=true`) dans l’onglet du rôle à chaque nouveau relais. L'Architecte reste sur son fil. Le relais vérifie le marqueur temporaire avant tout envoi et exige son maintien dans la conversation `/c/...` après envoi, sans accepter un chat normal de remplacement. La prise en charge et la livraison restent prouvées par GitHub ; les reçus empêchent un renvoi automatique après une interruption. Un chat temporaire ne figure pas dans l'historique : ne pas fermer l’onglet tant que le travail GitHub n'est pas achevé. Sans URL `/c/...` temporaire après l'envoi, la récupération reste suspendue et aucun second envoi n'est déclenché.
 
 ## Vérifications locales
 

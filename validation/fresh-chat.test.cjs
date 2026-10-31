@@ -8,7 +8,7 @@ const {harness}=require('./delivery.test.cjs');
  const updates=[],requests=[],modelChecks=[];
  h.c.chrome.tabs.get=async id=>id===2?qaTab:oldGet(id);
  h.c.chrome.tabs.query=async()=>[...(await oldQuery()).filter(t=>t.id!==2),qaTab];
- h.c.chrome.tabs.update=async(id,props)=>{assert.equal(id,2,'même onglet QA');assert.deepEqual(Object.keys(props),['url']);assert.match(props.url,/^https:\/\/chatgpt\.com\/$/);updates.push(props.url);qaTab.url=props.url;return qaTab;};
+ h.c.chrome.tabs.update=async(id,props)=>{assert.equal(id,2,'même onglet QA');assert.deepEqual(Object.keys(props),['url']);assert.equal(props.url,'https://chatgpt.com/?temporary-chat=true');updates.push(props.url);qaTab.url=props.url;return qaTab;};
  h.c.chrome.scripting.executeScript=async x=>{
   if(x.func.name==='oldPageSafe')return [{result:{ok:true}}];
   if(x.func.name==='chooseHigh'){modelChecks.push(x.target.tabId);return [{result:{ok:true}}];}
@@ -16,9 +16,10 @@ const {harness}=require('./delivery.test.cjs');
    const attempt=x.args[2];
    assert.equal(attempt.role,'qa');
    assert.equal(attempt.fresh,true);
+   assert.match(qaTab.url,/\?temporary-chat=true$/,'le mode temporaire doit être présent');
    assert.equal((await h.D.permit(attempt,qaTab.url,qaTab.id)).ok,true,'permis lié au même onglet');
    requests.push(attempt);
-   qaTab.url='https://chatgpt.com/c/qa-new-'+requests.length;
+   qaTab.url='https://chatgpt.com/c/qa-new-'+requests.length+'?temporary-chat=true';
    qaTab.title='Vérificateur, nouveau fil '+requests.length;
    return [{result:{status:'Clic effectué',detail:'Injecté'}}];
   }

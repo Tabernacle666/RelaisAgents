@@ -221,7 +221,7 @@ async function githubPoll(token={cancelled:false}){
    manual.destination===ChatConversations.key(s[job.role+'Url']);
   let resolved=pending?{tab:await chrome.tabs.get(pending.tabId),mode:'nouvelle-en-attente'}:ChatConversations.resolve(await chrome.tabs.query({}),s[job.role+'Title'],s[job.role+'Url']);
   if(resolved.error||!resolved.tab)throw Error(resolved.error||'Onglet agent absent.');
-  if(pending&&!FreshChat.isBlank(resolved.tab.url))throw Error('Nouvel onglet de conversation déplacé ; aucun renvoi.');
+  if(pending&&(!FreshChat.isBlank(resolved.tab.url)||!FreshChat.isTemporary(resolved.tab.url)))throw Error('Onglet temporaire déplacé ou désactivé ; aucun renvoi.');
   let freshMode=!!pending;
   let destination=pending?pending.previousUrl:ChatConversations.key(resolved.tab.url);
   let receiptKey=Delivery.key(s,job,destination);
@@ -288,7 +288,7 @@ async function githubPoll(token={cancelled:false}){
   if(!receipt&&!manualAdoption&&['dev','qa'].includes(job.role)&&s[job.role+'Fresh']){
    const moved=await FreshChat.prepare(resolved.tab,s,job,r);
    if(moved){freshMode=true;pending=moved.pending;resolved={tab:moved.tab,mode:moved.mode};destination=pending.previousUrl;receiptKey=Delivery.key(s,job,destination);receipt=await Delivery.read(receiptKey);
-    await appendLog(roleName[job.role],'Nouveau chat dans le même onglet : '+(moved.model?.verified?'GPT-6 High confirmé.':'sélecteur non vérifié ; modèle par défaut conservé.')+(moved.model?.warning?' '+moved.model.warning:''));
+    await appendLog(roleName[job.role],'Chat temporaire dans le même onglet : '+(moved.model?.verified?'GPT-6 High confirmé.':'sélecteur non vérifié ; modèle par défaut conservé.')+(moved.model?.warning?' '+moved.model.warning:''));
    }
   }
   if(receipt?.relayHead)relayHead=receipt.relayHead;
@@ -352,7 +352,7 @@ async function githubPoll(token={cancelled:false}){
   const actual=await chrome.tabs.get(resolved.tab.id);
   if(freshMode){
    const currentPending=await FreshChat.state(job.role);
-   if(!currentPending||currentPending.tabId!==resolved.tab.id||currentPending.previousUrl!==destination||currentPending.jobId!==FreshChat.jobId(fresh.settings,job)||!FreshChat.isBlank(actual.url)||!fresh.settings[job.role+'Fresh'])throw Error('Nouvelle conversation ou option modifiée pendant la lecture ; aucun envoi.');
+   if(!currentPending||currentPending.tabId!==resolved.tab.id||currentPending.previousUrl!==destination||currentPending.jobId!==FreshChat.jobId(fresh.settings,job)||!FreshChat.isBlank(actual.url)||!FreshChat.isTemporary(actual.url)||!fresh.settings[job.role+'Fresh'])throw Error('Nouvelle conversation ou option modifiée pendant la lecture ; aucun envoi.');
   }else{
    const currentTarget=ChatConversations.resolve(await chrome.tabs.query({}),fresh.settings[job.role+'Title'],fresh.settings[job.role+'Url']);
    if(!currentTarget.tab||currentTarget.tab.id!==resolved.tab.id||ChatConversations.key(currentTarget.tab.url)!==destination)throw Error('Conversation modifiée pendant la lecture ; aucun envoi.');
