@@ -1,0 +1,112 @@
+{
+  "version": "1.8.1",
+  "syntax_check": "PASS",
+  "tests": [
+    {
+      "test": "blocked-web.test.cjs",
+      "exit": 0,
+      "output": "PASS lecture Web : historique du fichier, SHA statut stable après commit main supplémentaire, référence autorisation, preuve du checkpoint et du statut figé, repli historique HTML, divergence refusée."
+    },
+    {
+      "test": "blocked.test.cjs",
+      "exit": 0,
+      "output": "PASS ancien blocage = poursuite dev dédupliquée; livraison complète -> QA; aucun morcellement architecte."
+    },
+    {
+      "test": "bridge.test.cjs",
+      "exit": 0,
+      "output": "PASS bridge de données seul compatible 1.7.20 : livraison .64 -> QA -> Architecte -> autorisation .66; aucune livraison .65 inventée."
+    },
+    {
+      "test": "delivery.test.cjs",
+      "exit": 0,
+      "output": "PASS: 6 scans par rôle = 1 envoi ; transition des 3 rôles ; nouveau cycle ; nouvelle conversation avec ancienne prise ; lecture/reprise/save/redémarrage ; indisponibilité avant envoi ; timeout ; réessai manuel unique ; réservation et permis atomiques ; migration 1.7.3."
+    },
+    {
+      "test": "editor-discovery.test.cjs",
+      "exit": 0,
+      "output": "PASS : quatre sélecteurs reconnaissent le textbox visible hors formulaire après un champ caché."
+    },
+    {
+      "test": "editor-variants.test.cjs",
+      "exit": 0,
+      "output": "PASS éditeur plaintext-only imbriqué et script suspendu/orphelin : réessai explicite autorisé, ancien callback repris sans clic, aucun double envoi."
+    },
+    {
+      "test": "fresh-chat.test.cjs",
+      "exit": 0,
+      "output": "PASS options live QA, Architecte exclu, même onglet, GPT-6 High contrôlé avant envoi, destination canonique, déduplication, case désactivée = append, réactivation = nouveau fil."
+    },
+    {
+      "test": "fresh-recovery.test.cjs",
+      "exit": 0,
+      "output": "PASS onglet titre ChatGPT, modèle non vérifié autorisé, reprise après changement activation, contrôle d’onglet, Work interdit, reçu déplacé, récupération."
+    },
+    {
+      "test": "fresh-title-restart.test.cjs",
+      "exit": 0,
+      "output": "PASS reprise navigation avec titre ChatGPT, modèle non vérifiable, envoi unique, URL canonique et fil persistant.\nPASS reprise ready avec titre ChatGPT, modèle non vérifiable, envoi unique, URL canonique et fil persistant."
+    },
+    {
+      "test": "gantt.test.cjs",
+      "exit": 0,
+      "output": "✔ reconstruit les trois lanes de prise en charge à signal sans inventer du temps actif (2.627741ms)\n✔ écarte les commits de la mauvaise version (0.273384ms)\n✔ aucune durée de travail déduite des longues interruptions (0.179175ms)\n✔ reconnaît les versions longues et courtes (0.165975ms)\nℹ tests 4\nℹ suites 0\nℹ pass 4\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 10.41989"
+    },
+    {
+      "test": "model-picker.test.cjs",
+      "exit": 0,
+      "output": "PASS sélecteur GPT-6 High si disponible, Work jamais cliqué, menu introuvable = modèle par défaut et envoi autorisé."
+    },
+    {
+      "test": "preflight.test.cjs",
+      "exit": 0,
+      "output": "PASS contrôle réel : arrêt caché accepté, arrêt visible refusé, brouillon préservé, éditeur absent identifié séparément."
+    },
+    {
+      "test": "progress.test.cjs",
+      "exit": 0,
+      "output": "✔ masterticket fournit projet objectif et cible sans métadonnées artificielles (2.554813ms)\n✔ blocage et reprise du même billet ne créent aucune acceptation fictive (1.490482ms)\n✔ recul = livraison observée mais jamais acceptée, QA incomplet non recevable (0.324869ms)\n✔ la durée d’un blocage ouvert demeure ouverte, sans inventer une reprise (0.243069ms)\n✔ pont administratif exclu des billets à programmer, correction statique visible et non acceptée (0.62297ms)\nℹ tests 5\nℹ suites 0\nℹ pass 5\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 17.179944"
+    },
+    {
+      "test": "qa-return-web.test.cjs",
+      "exit": 0,
+      "output": "PASS retour QA figé : prise/checkpoint ou rapport secondaire ne change ni le commit, ni le verdict, ni le reçu, ni la prise reconnue."
+    },
+    {
+      "test": "qa-routing.test.cjs",
+      "exit": 0,
+      "output": "PASS QA -> dev -> QA deux corrections du même cycle, architecte uniquement après conformité, reçus persistants, prises séparées, sources et commits cohérents."
+    },
+    {
+      "test": "qa64-tentative4-real.test.cjs",
+      "exit": 0,
+      "output": "PASS rapport réel .64 tentative 4 : Architecte une seule fois; gras Markdown et contradictions contrôlés."
+    },
+    {
+      "test": "reassign.test.cjs",
+      "exit": 0,
+      "output": "PASS reprise explicite des états prepared/committing/uncertain/sent vers la nouvelle sélection, ancien permis révoqué, six lectures sans répétition et reprise même destination."
+    },
+    {
+      "test": "rollover.test.cjs",
+      "exit": 0,
+      "output": "PASS rollover 1.7.15 : seulement Programmeur ; même onglet, nouvel onglet, URL canonique, reprise, titre, reçu unique, avis système en réponse, exclusion du texte utilisateur et du bouton global."
+    },
+    {
+      "test": "serialization.test.cjs",
+      "exit": 0,
+      "output": "PASS régression réelle .21 cycle 002 : arguments sérialisables sans hold et après ancien blocage .21 cycle 001 ; un seul réveil Programmeur, aucun QA/Architecte."
+    },
+    {
+      "test": "status-order.test.cjs",
+      "exit": 0,
+      "output": "PASS statut réel .25 : ordre des champs transportés accepté ; SHA, livraison, preuve, ordre des tableaux et champs supplémentaires altérés refusés."
+    },
+    {
+      "test": "suspended-composer.test.cjs",
+      "exit": 0,
+      "output": "PASS script suspendu/orphelin : réessai explicite autorisé, ancien callback repris sans clic, aucun double envoi."
+    }
+  ],
+  "limitation": "Simulation locale du plugin; aucune exécution dans la session Edge réelle."
+}

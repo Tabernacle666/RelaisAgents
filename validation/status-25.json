@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "role": "dev",
+  "cycle_id": "consolevr-1.1.55.25-github-001",
+  "billet": "1.1.55.25",
+  "etat": "bloque",
+  "motif": "charge",
+  "demande": "morceler_billet_courant",
+  "branche_source": "dev",
+  "base_sha": "793f3f19a619260d215ecaed2666e9d7ed7a810b",
+  "source_sha": "187c6ec02e1eb052216a08dd9e2f2f4fda7b9d57",
+  "autorisation_commit_sha": "4f30c7875c479ec2842ecad15b0970028b80c463",
+  "acquis": [
+    "HomeWorld.cpp::PumpRetiredCanonicalOperations : un nœud traverse ReleaseLeases, ReleaseTransfer, SubmitFree dans le même passage, au plus trois transitions, sous borne 256 nœuds/1ms ; refus conserve stage/outcome/handles, ACK avant payload, aucun nouveau vote ni Record",
+    "HomeWorld.h / HomeWorldLandscaping.inl : PrepareCanonicalPrivatePatchFromAuthor accepte un CanonicalGesture auteur déjà produit ; patch privé paginé sans seconde extraction d'objets",
+    "HomeWorld.cpp::LandscapeBuildTask::PrepareReadyChild : phase Canonical utilise PrepareCanonicalAuthorPage et transmet un seul résultat auteur à la phase CanonicalPrivatePatch ; compatibilité de commit privé préservée et barrière documentaire fermée",
+    "ChildPreparation : propriétaire unique_ptr<CanonicalPublicOperation> réservé pour migration, sans vote ni transaction tant que le document entier n'a pas basculé",
+    "VERSION.txt et CMakeLists.txt : identité 1.1.55.25 ; cinq fichiers prescrits seulement ; checkpoint sur dev"
+  ],
+  "reste": [
+    "CaptureCanonicalPage : dissocier capture auteur et capture hôte ; AcquireCanonicalView pour document/proofs exacts, ReadCanonicalObjects et ReadCanonicalMembers par pages, conserver capture gpuFree distincte ; ne pas reconvertir LandscapeResidency",
+    "ChildPreparation/ReadyComposition et SyncReadyComposition/AwaitParticipants : câbler CanonicalPublicOperation, préparation et admission paginées, identité transaction immuable, Pending/Stale via Resolve et conservation author/Undo/journal jusqu'à FinishCanonicalOperationAdoption ; aucun appel public avant barrière .26",
+    "ReadyCanonicalGesture : branche publique vérifie véritablement phase d'opération et preuves, supprimer tout succès public inconditionnel sans modifier le contrat de compatibilité privé",
+    "SyncForestObjects, SyncPublicLandscapeGeometry, SyncLandscapeGeometry : partager extraction auteur et raccordement commun en préservant les coordonnées de transactions historiques et tous les propriétaires contacts/GPU/readback",
+    "AppendLandscaping, PublishLandscapeAdmission et CaptureAdmissionPage : préparer lecteurs publics Objects/Members/Plan/ReadDeltas et listes resident/visible à partir de l'admission existante, avec budgets et pagination",
+    "Abandon/retrait des child owners : conserver ensemble auteur, Undo, journal, opération tenté/non terminal et expositions ; intégrer Resolve et refus de retraite pendant tentative incertaine ; vérifier statiquement tous les chemins d'arrêt, sans compiler/exécuter"
+  ],
+  "preuve": "Au checkpoint, PrepareReadyChild::Canonical emploie PrepareCanonicalAuthorPage puis CanonicalPrivatePatch avec l'auteur possédé, et PumpRetiredCanonicalOperations progresse en un passage. Mais CaptureCanonicalPage lit encore landscapeUnits_.CanonicalObjects et d'autres maps privées; SyncReadyComposition appelle encore CommitLandscapeTransaction sans CanonicalPublicOperation puis CommitCanonicalLandscapePatch, et ReadyCanonicalGesture retourne toujours true dans HomeWorldLandscaping.inl. Les autres consommateurs et lecteurs publics prescrits sont donc non raccordés. Leurs appels avant migration pourraient publier deux autorités ou abandonner un auteur après COMMITTED; aucun signal de livraison n'est justifié.",
+  "livraison": false
+}

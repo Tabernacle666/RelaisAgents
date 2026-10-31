@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Observatoire des projets — Tableau de bord</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#e3ebf8;background:#0a1221;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;padding:18px 20px;min-width:320px}main{max-width:1850px;margin:auto}
+h1{font-size:27px;letter-spacing:-.6px;margin:3px 0 8px}.overline{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#a2b6cd;font-weight:750}
+.identity{color:#d8e4f3;font-size:14px;line-height:1.5;margin-bottom:10px}.identity b{color:#eaf2ff}
+.ribbon{background:#1a2840;border:1px solid #334966;border-radius:10px;padding:11px 16px;font-size:15px;font-weight:700;margin-bottom:12px}
+button,select{background:#192b45;border:1px solid #334963;border-radius:7px;color:#e9f2ff;padding:7px 10px;font-size:12px;font-weight:650;cursor:pointer}
+button:hover{background:#273d58}button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid #8db5f5;outline-offset:2px}
+label,small{font-size:12px;color:#aabdd4}.workspace-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:10px 14px;margin-bottom:12px;background:#111e32;border:1px solid #30435b;border-radius:12px}
+.workspace-toolbar .left,.workspace-toolbar .right{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.window-default{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;cursor:pointer}.window-default input{accent-color:#43d6ee;width:15px;height:15px}
+.panel{background:#101e31;border:1px solid #2e415a;border-radius:12px;overflow:hidden;margin:0 0 12px}
+.panel-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid #2a3d56;padding:11px 15px}
+h2{font-size:16px;margin:0}.legend{display:flex;gap:13px;flex-wrap:wrap;font-size:12px;color:#bbcade;align-items:center}
+.legend-item{display:inline-flex;align-items:center;gap:6px}.swatch{width:13px;height:6px;border-radius:2px;display:inline-block}
+.blocked-swatch{width:13px;height:11px;background:repeating-linear-gradient(135deg,#ba5cdf77 0,#ba5cdf77 3px,#18253b 3px,#18253b 6px);border:1px solid #ba5cdf}
+.timeline{width:100%;overflow:hidden;min-width:0}.timeline-fit{display:flex;min-width:0;width:100%;position:relative}
+.timeline-labels{flex:0 0 114px;min-width:0;background:#111e31;border-right:1px solid #364a66}
+.timeline-top{height:54px;padding:17px 8px;font-size:11px;color:#9bb1cd}
+.timeline-lane{height:44px;display:flex;align-items:center;padding:0 6px;font-size:12px;font-weight:650;
+ border-top:1px solid #263852;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeline svg,.plot svg{display:block;min-width:0}.chartbody{padding:8px 12px;overflow:hidden;min-width:0}
+.plot{min-height:0;min-width:0;width:100%}.plot svg{width:100%;height:auto;min-width:0;max-width:100%}
+.notice{min-height:17px;color:#99afc9;font-size:11px;margin:8px 0}.notice.error{color:#ff9caa}
+.movable-panel>.panel-top{cursor:grab}.movable-panel>.panel-top:active,.gauge-card>.panel-top:active{cursor:grabbing}
+.drag-hint{font-size:11px;color:#8596af;white-space:nowrap}.drag-over{outline:2px dashed #4bbce0;outline-offset:-4px}.dragging{opacity:.54}
+.gauge-band{padding:11px 12px 13px;background:linear-gradient(180deg,#14243a,#101e31);border-bottom:1px solid #2e415a}
+.gauge-band-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 3px 9px;color:#8fa9c6;font-size:11px;font-weight:750;letter-spacing:1.1px;text-transform:uppercase}
+.gaugegrid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}
+.gauge-card{flex:0 0 auto;width:305px;height:296px;min-width:245px;min-height:245px;max-width:100%;resize:both;overflow:hidden;display:flex;flex-direction:column;margin:0!important;position:relative;background:linear-gradient(155deg,#282018,#151515)}
+.gauge-card .panel-top{padding:8px 10px;min-height:42px;cursor:grab}.gauge-card h2{font-size:12px;letter-spacing:-.1px}.dial-unit{font-size:9px;font-weight:800;letter-spacing:.7px;color:#aab0c2}
+.gauge-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,30%);align-items:center;padding:0 6px;min-height:0;flex:1 1 auto;gap:2px}
+.gauge-face{min-width:0;min-height:0;height:100%}.gauge-face svg{display:block;width:100%;height:100%;max-height:100%;margin:auto}
+.gauge-side{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;min-width:0}.gauge-side label{font-size:10px}
+.gauge-side select{font-size:10px;width:100%;padding:5px 3px;white-space:normal}.gauge-side .side-note{font-size:10px;line-height:1.3;color:#9aaec5}
+.dial-side-title{font-size:10px;font-weight:800;letter-spacing:.7px;color:#b7bed0}
+.gauge-readings{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:1px 10px 7px;flex:0 0 auto}
+.gauge-readings .reading{border-top:1px solid #35445a;padding-top:5px;min-width:0}
+.gauge-readings .reading small{display:block;color:#9fb0c7;font-size:9px;font-weight:760;letter-spacing:.35px;text-transform:uppercase}
+.gauge-readings .reading strong{font-size:16px;font-variant-numeric:tabular-nums;display:block;white-space:nowrap;letter-spacing:-.5px}
+.gauge-accept{border-color:#8a552d;background:linear-gradient(160deg,#332519,#1b1715)}
+.gauge-accept .dial-unit,.gauge-accept .reading.primary strong{color:#ffb361}.gauge-accept .reading.secondary strong{color:#c99360}
+.gauge-qa{border-color:#17728f;background:linear-gradient(160deg,#123747,#0b202d)}
+.gauge-qa .dial-unit,.gauge-qa .reading.primary strong{color:#52e6ff}.gauge-qa .reading.secondary strong{color:#33a6d5}
+.gauge-armed{border-color:#3a6829;background:linear-gradient(160deg,#23371d,#121d16)}
+.gauge-telemetry{width:390px;height:296px;border-color:#4f6c83;background:radial-gradient(ellipse at 50% -20%,#224658 0%,#102331 64%,#09141f 100%)}
+.gauge-telemetry .panel-top{border-bottom:1px solid #36536b;flex:0 0 auto}
+.telemetry-content{padding:6px 10px 8px;min-height:0;position:relative;flex:1 1 auto;display:flex;flex-direction:column}
+.telemetry-screen{border-radius:10px;border:1px solid #467388;box-shadow:inset 0 0 22px #09131b,0 0 13px #0a2230;background:repeating-linear-gradient(0deg,#102a38 0,#102a38 3px,#102936 4px);padding:5px;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-evenly}
+.telemetry-item{min-width:0;display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:5px 6px;border-bottom:1px solid #244151;font-variant-numeric:tabular-nums}
+.telemetry-item:last-child{border-bottom:0}
+.telemetry-item .telemetry-name{font-size:12px;color:#86b4c9;white-space:nowrap}
+.telemetry-item strong{font-size:clamp(11px,1.25vw,17px);font-weight:850;letter-spacing:-.4px;color:#b1faff;min-width:0;overflow-wrap:anywhere;white-space:normal;text-align:right}
+.telemetry-item[data-metric="oneShot"] strong{color:#adfa79}
+.telemetry-item[data-metric="fragileFile"] strong{color:#ffc48e}
+.telemetry-item[data-metric="fragileFile"] .telemetry-name{color:#d5aa84}
+.telemetry-empty{padding:30px 6px;color:#87aabd;text-align:center;font-size:12px}
+.telemetry-config{margin-top:9px;font-size:11px;position:relative}
+.telemetry-config summary{cursor:pointer;display:inline-flex;align-items:center;border:1px solid #36586b;border-radius:6px;padding:5px 8px;color:#a9d6e5;background:#173244}
+.telemetry-options{position:relative;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#0c1f2c;border:1px solid #365568;border-radius:7px;margin-top:5px;overflow:visible}
+.telemetry-option{display:flex;gap:5px;align-items:center;font-size:10px;cursor:pointer;line-height:1.3}
+.telemetry-option input{accent-color:#62dff5}
+.telemetry-limit{font-size:10px;color:#7daec1;margin-top:4px}
+.gauge-armed .dial-unit,.gauge-armed .armed-label,.gauge-armed .reading.primary strong{color:#b4ff69}.gauge-armed .reading.secondary strong{color:#8cbf48}
+.chart-tooltip{position:fixed;z-index:30;max-width:320px;pointer-events:none;background:#081726;border:1px solid #5f829e;border-radius:8px;padding:9px 11px;color:#e6f3ff;font-size:12px;line-height:1.6;box-shadow:0 7px 24px #000a;white-space:pre-line}
+.chart-tooltip[hidden]{display:none}
+@media(max-width:700px){body{padding:10px}h1{font-size:22px}.ribbon{font-size:13px}.gauge-card{width:min(100%,310px)}.legend{gap:8px}}
+</style></head><body><main>
+<header><div class="overline">Tableau de bord des relais GitHub</div><h1>Observatoire des projets</h1><div class="identity" id="identity">Projet : — · Objectif : —</div></header>
+<div class="ribbon" id="activeRole" role="status">Chargement de l’activité…</div>
+<div class="workspace-toolbar" aria-label="Contrôles communs des graphiques">
+ <div class="left"><label for="range">Fenêtre commune</label><select id="range"><option value="6" selected>6 heures</option><option value="12">12 heures</option><option value="24">24 heures</option><option value="48">48 heures</option><option value="72">72 heures</option><option value="168">7 jours</option></select>
+ <label class="window-default" for="defaultRange"><input type="checkbox" id="defaultRange"> Fenêtre par défaut</label></div>
+ <div class="right"><button type="button" id="resetLayout">Réinitialiser la disposition</button><button type="button" id="reload">Actualiser GitHub</button></div>
+</div>
+<div id="workspacePanels">
+ <section class="panel movable-panel" id="timelinePanel" data-layout-id="timeline">
+  <div class="gauge-band"><div class="gauge-band-title"><span>Compteurs · glisser les en-têtes pour déplacer, tirer le coin pour redimensionner</span></div>
+   <div class="gaugegrid" id="gaugeGrid" aria-label="Cadrans de livraison">
+    <section class="panel gauge-card gauge-accept" data-gauge-id="accept" id="acceptCard">
+     <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le compteur d'acceptations"><h2>Depuis la dernière acceptation</h2><span class="dial-unit">0—120 MIN</span></div>
+     <div class="gauge-content"><div id="acceptGauge" class="gauge-face"></div><div class="gauge-side"><label for="averageMode">Moyenne</label><select id="averageMode"><option value="last10ticket">10 derniers billets</option><option value="current_serie">Série actuelle</option><option value="last_24h">24 dernières heures</option></select><span class="side-note" id="acceptGaugeScope"></span></div></div>
+     <div class="gauge-readings" id="acceptGaugeReadings"></div>
+    </section>
+    <section class="panel gauge-card gauge-qa" data-gauge-id="qa" id="qaCard">
+     <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le compteur QA"><h2>Temps depuis le dernier refus QA</h2><span class="dial-unit">0—120 MIN</span></div>
+     <div class="gauge-content"><div id="badGauge" class="gauge-face"></div><div class="gauge-side"><span class="dial-side-title">BAD DELIVERY</span><span class="side-note">Moyenne entre deux refus dans la série.</span></div></div>
+     <div class="gauge-readings" id="badGaugeReadings"></div>
+    </section>
+    <section class="panel gauge-card gauge-armed" data-gauge-id="completion" id="completeCard">
+     <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le compteur de complétion"><h2>Complétion effective</h2><span class="dial-unit">0—200 %</span></div>
+     <div class="gauge-content"><div id="completeGauge" class="gauge-face"></div><div class="gauge-side"><span class="dial-side-title armed-label">ARMED</span><span class="side-note">Acceptés / cible<br>Avec reprises / cible</span></div></div>
+     <div class="gauge-readings" id="completeGaugeReadings"></div>
+    </section>
+    <section class="panel gauge-card gauge-telemetry" data-gauge-id="telemetry" id="telemetryCard">
+     <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le cadran de télémétrie"><h2>Instrument multi-mesures</h2><span class="dial-unit">GITHUB · 10 CANAUX</span></div>
+     <div class="telemetry-content">
+      <div class="telemetry-screen" id="telemetryReadings" aria-label="Métriques du tableau de bord"></div>
+      <details class="telemetry-config" id="telemetryChooser"><summary id="telemetryConfigLabel">Métriques (2/5)</summary>
+       <div id="telemetryOptions" class="telemetry-options" aria-label="Choisir jusqu’à cinq métriques"></div>
+       <div id="telemetryLimit" class="telemetry-limit">Choisir jusqu’à 5 métriques parmi 10.</div>
+      </details>
+     </div>
+    </section>
+   </div>
+  </div>
+  <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le graphique de chronologie"><h2>Chronologie des rôles</h2>
+   <div class="legend"><span class="legend-item"><i class="swatch" style="background:#a4ff32"></i>Programmeur</span><span class="legend-item"><i class="swatch" style="background:#37ddf8"></i>Vérificateur</span><span class="legend-item"><i class="swatch" style="background:#f2a04d"></i>Architecte</span></div>
+   <span class="drag-hint">Déplacer ↕</span></div>
+  <div class="timeline" id="timeline"></div>
+ </section>
+ <section class="panel movable-panel" id="progressPanel" data-layout-id="progress">
+  <div class="panel-top" draggable="true" tabindex="0" aria-label="Déplacer le graphique des billets"><h2>Billets acceptés et cible de série</h2><div class="legend"><span class="legend-item"><i class="swatch" style="background:#f2a04d"></i>Acceptés</span><span class="legend-item"><i class="swatch" style="background:#a77749"></i>Total prévu</span><span class="legend-item"><i class="blocked-swatch"></i>Blocage</span></div><span class="drag-hint">Déplacer ↕</span></div>
+  <div class="chartbody"><div id="progressChart" class="plot"></div></div>
+ </section>
+</div>
+<div class="chart-tooltip" id="chartTooltip" role="tooltip" hidden></div>
+<footer><div class="notice" id="notice" role="status"></div></footer>
+</main><script src="gantt-data.js"></script><script src="progress-data.js"></script><script src="gauge-data.js"></script><script src="telemetry-data.js"></script><script src="dashboard.js"></script></body></html>

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "cycle_id": "consolevr-1.1.55.21-github-002",
+  "etat": "termine",
+  "ferme": true,
+  "decision": "continuer",
+  "billet": "1.1.55.21",
+  "branche_source": "dev",
+  "source_sha": "ff763dcb9e7210a93d8eb0c487966b80d788e881",
+  "cycle_precedent": "consolevr-1.1.55.21-github-001",
+  "verification_commit_sha": "b90f448169fe54924284b66f171a1246b5a19ebe",
+  "blocage_commit_sha": "47960ad6432cc78cd2a66233df568add018f31c8",
+  "derniere_source_verifiee": "311da54b218d9998aaff450e1295e6be723d0c74",
+  "remplace_cycle_id": "consolevr-1.1.55.21-github-001",
+  "motif": "morcellement_reste_billet_courant_apres_blocage"
+}
+

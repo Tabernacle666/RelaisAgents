@@ -1,0 +1,40 @@
+{
+  "version": "1.8.2",
+  "base": "relais_agents_github_1.8.1.zip",
+  "tests": {
+    "suite_count": 33,
+    "passed": 33,
+    "failed": 0,
+    "invocation": "node --test validation/*.test.cjs"
+  },
+  "syntax_check": [
+    "background.js",
+    "delivery.js",
+    "github.js",
+    "dashboard.js",
+    "conversations.js",
+    "gantt-data.js",
+    "github-worker.js",
+    "progress-data.js",
+    "popup.js",
+    "service-worker.js",
+    "gauge-data.js",
+    "rollover.js",
+    "fresh-chat.js"
+  ],
+  "dashboard": {
+    "gauge_count": 3,
+    "average_modes": [
+      "last10ticket",
+      "current_serie",
+      "last_24h"
+    ],
+    "top_progress_preserved": true
+  },
+  "qa77": {
+    "commit": "ee666048fb19f4ce0f90c3b9dc6f71ceeacfd2c1",
+    "verdict": "architecte",
+    "report_style": "Résultat : conforme. Aucune divergence constatée."
+  },
+  "source_of_truth": "GitHub history; no GitHub signal modified"
+}

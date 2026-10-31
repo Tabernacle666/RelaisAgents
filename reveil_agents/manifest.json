@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Relais GitHub des agents",
+  "version": "1.8.8",
+  "description": "Relais GitHub des agents, conversations par role et Gantt.",
+  "permissions": [
+    "alarms",
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://github.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*"
+  ],
+  "action": {
+    "default_title": "Relais GitHub",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Relais GitHub</title><style>
+:root {font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1c2635;color-scheme:light}
+* {box-sizing:border-box}
+[hidden] {display:none!important}
+body {width:440px;margin:0;padding:17px;background:#f8fafc}
+h1 {font-size:18px;margin:0 0 5px}
+p {font-size:12px;line-height:1.45;color:#516174;margin:5px 0 12px}
+label {display:block;font-size:12px;font-weight:650;margin:10px 0 5px}
+input,select,textarea {width:100%;font:12px system-ui;border:1px solid #cbd5e1;border-radius:7px;padding:8px;background:#fff;color:#142033}
+textarea {resize:vertical;min-height:50px}
+select {text-overflow:ellipsis}
+fieldset:disabled {opacity:.45}
+fieldset {border:1px solid #dae1ec;border-radius:9px;padding:10px 11px 12px;margin:12px 0 0}
+legend {font-size:12px;font-weight:700;padding:0 5px}
+.two {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two label {margin-top:0}
+.row {display:flex;gap:7px;align-items:center}
+.row label {margin:0;flex:1}
+.fresh-choice {margin:7px 0 12px}.fresh-choice input {width:auto;flex:none;margin:0;accent-color:#2459bd}.fresh-choice label {font-weight:500;cursor:pointer}
+.buttons {display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+button {border:0;border-radius:7px;padding:9px 10px;font:600 12px system-ui;cursor:pointer;background:#e2e8f0;color:#15243a}
+button.primary {background:#2459bd;color:#fff;flex:1}
+button.danger {background:#e7e9ed;color:#334155}
+button:disabled {opacity:.48;cursor:default}
+.status {padding:10px;background:#edf2fa;border-radius:7px;font-size:12px;line-height:1.55;margin-top:12px;white-space:pre-line}
+.feedback {font-size:11px;color:#9a3412;margin-top:7px;min-height:14px}
+.log {max-height:140px;overflow:auto;background:#fff;border-radius:7px;border:1px solid #e2e8f0;padding:8px;margin-top:6px;font-size:11px;line-height:1.6;white-space:pre-wrap}
+small {font-size:10px;color:#64748b;display:block;line-height:1.45;margin-top:8px}
+</style></head><body>
+<h1>Relais GitHub · <span id="version">…</span></h1>
+<div class="buttons"><button id="save">Enregistrer</button><button id="start" class="primary">Démarrer / Reprendre</button><button id="stop">Arrêter</button><button id="refreshTabs">Actualiser les onglets</button><button id="githubCheck">Lire GitHub</button><button id="inspectDev">Vérifier la limite Programmeur</button><button id="openDashboard">Tableau de bord</button></div>
+<div class="buttons"><button id="retryDelivery" disabled>Réessayer volontairement cet envoi</button><button id="forcePendingRelay" class="danger" disabled>Forcer le renvoi (ready)</button></div>
+<div id="feedback" class="feedback"></div><div id="status" class="status"></div>
+<label>Journal GitHub</label><div id="log" class="log"></div>
+<fieldset><legend>Conversations des rôles</legend><label>Programmeur</label><select id="devUrl"></select><div class="row fresh-choice"><input id="devFresh" type="checkbox"><label for="devFresh">Nouvelle conversation à chaque demande (GPT-6 High par défaut)</label></div><label>Vérificateur</label><select id="qaUrl"></select><div class="row fresh-choice"><input id="qaFresh" type="checkbox"><label for="qaFresh">Nouvelle conversation à chaque demande (GPT-6 High par défaut)</label></div><label>Architecte</label><select id="archUrl"></select><small>Architecte : conversation continue, sans renouvellement automatique.</small><small>La vérification du modèle est facultative : si le sélecteur est introuvable, le relais utilise le modèle déjà sélectionné. Le titre provisoire « ChatGPT » ne bloque pas le suivi du même onglet.</small></fieldset>
+<fieldset><legend>Session GitHub connectée</legend><label>Onglet GitHub</label><select id="githubTabId"></select><label>Dépôt</label><input id="githubRepo"><label>Branche des relais</label><input id="githubBranch"></fieldset>
+<p>L’agent publie sa prise en charge avant de travailler. Le plugin attend ensuite son résultat GitHub.</p>
+<script src="conversations.js"></script><script src="popup.js"></script></body></html>

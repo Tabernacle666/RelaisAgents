@@ -1,0 +1,10 @@
+# Configuration locale de l'extension et sorties de validation
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+*.crx
+*.pem
+.env
+.env.*
+coverage/
