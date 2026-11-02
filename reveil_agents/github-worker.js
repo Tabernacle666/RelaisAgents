@@ -184,6 +184,21 @@ async function githubPoll(token={cancelled:false}){
  await deliveryBoot;
  const {settings:s={},runtime:r={},githubState:g={},blockedHolds={}}=await chrome.storage.local.get(['settings','runtime','githubState','blockedHolds']);
  if(!r.enabled||s.mode!=='github'||token.cancelled)return;
+ const priorLocal=g.localStatus;
+ try {
+  const response=await fetch('http://127.0.0.1:42716/status',{cache:'no-store',signal:AbortSignal.timeout(2200)});
+  if(response.ok){
+   const local=await response.json();
+   if(local.schema_version===1&&/^[a-f0-9]{40}$/.test(local.head||'')){
+    g.localStatus={...local,connected:true};
+    if(priorLocal?.head&&priorLocal.head!==local.head)
+     await appendLog('Propriétaire','HEAD local modifié : '+local.head.slice(0,9)+(local.last_head_action?' · '+local.last_head_action:''));
+    if(local.diagnostic?.run_id&&
+       (priorLocal?.diagnostic?.run_id!==local.diagnostic.run_id||priorLocal?.diagnostic?.etat!==local.diagnostic.etat))
+     await appendLog('Propriétaire','Diagnostic '+local.diagnostic.etat+' · '+local.diagnostic.run_id);
+   }
+  }
+ }catch{g.localStatus={connected:false};}
  g.status='Lecture GitHub en cours…';g.lastStarted=Date.now();g.selectedRole=null;g.retryAvailable=false;
  await chrome.storage.local.set({githubState:g});
  const previousStatus=g.status;
@@ -213,7 +228,10 @@ async function githubPoll(token={cancelled:false}){
    g.lastChecked=Date.now();await chrome.storage.local.set({githubState:g});await recordStatus();return;
   }
   g.status=job?'Relais : '+job.role+' · '+job.value.cycle_id:
-    diagnosticWaiting?'À TOI : diagnostic attendu · '+diagnosticWaiting.billet+' · '+diagnosticWaiting.source_sha.slice(0,9):
+    diagnosticWaiting?('À TOI : '+(
+     g.localStatus?.diagnostic?.source_sha===diagnosticWaiting.source_sha?
+      g.localStatus.diagnostic.etat==='demarre'?'diagnostic local en cours': 'diagnostic local terminé, push des preuves attendu':
+      'pull puis diagnostic attendus')+' · '+diagnosticWaiting.billet+' · '+diagnosticWaiting.source_sha.slice(0,9)):
     'Attente d’un relais complet / autorisé';g.awaitingDiagnostic=diagnosticWaiting;g.lastChecked=Date.now();
   if(!job){await chrome.storage.local.set({githubState:g});await recordStatus();return;}
   const claim=(snap.claims||[])[{dev:0,qa:1,arch:2}[job.role]];

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Relais GitHub des agents",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Relais GitHub des agents, conversations par role et Gantt.",
   "permissions": [
     "alarms",
@@ -14,7 +14,8 @@
     "https://chat.openai.com/*",
     "https://github.com/*",
     "https://raw.githubusercontent.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "http://127.0.0.1:42716/*"
   ],
   "action": {
     "default_title": "Relais GitHub",

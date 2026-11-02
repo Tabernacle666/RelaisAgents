@@ -420,7 +420,13 @@ function drawGantt(){if(!gantt)return;
  container.append(chart);viewer.replaceChildren(container);
 }
 function renderHeadline(data){const settings=data?.settings||{},state=data?.githubState||{};const names={dev:'Le Programmeur',qa:'QA',arch:'L’Architecte'};
- if(data?.runtime?.enabled&&state.awaitingDiagnostic){const d=state.awaitingDiagnostic;$('activeRole').textContent='À TOI : diagnostic attendu pour '+d.billet+' · '+d.source_sha.slice(0,9)+' · pull → diagnostic → push';return;}
+ if(data?.runtime?.enabled&&state.awaitingDiagnostic){
+  const d=state.awaitingDiagnostic,local=state.localStatus?.diagnostic;
+  const detail=local?.source_sha===d.source_sha?
+   (local.etat==='demarre'?'Diagnostic local en cours': 'Diagnostic local terminé · push attendu'):
+   (state.localStatus?.connected?'Pull puis diagnostic attendus':'Diagnostic attendu · passerelle locale inactive');
+  $('activeRole').textContent='À TOI : '+detail+' pour '+d.billet+' · '+d.source_sha.slice(0,9);return;
+ }
  const role=state.selectedRole,t=P.ticket(state.cycle)||P.ticket(state.status)||null;
  $('activeRole').textContent=(data?.runtime?.enabled&&role&&t)?`${names[role]||role} travaille sur le billet ${t}`:
   (data?.runtime?.enabled?`Relais actif · ${t?`billet ${t} · `:''}aucun rôle en travail confirmé`:'Relais arrêté');
