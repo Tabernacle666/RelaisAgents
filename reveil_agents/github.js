@@ -50,7 +50,7 @@
   }
   const n=attempt(l);
   if(!n||l.billet!==a.billet||!sha(l.autorisation_commit_sha)||l.branche_source!==a.branche_source||
-     (n===1&&l.base_sha!==a.source_sha)||(n>1&&(!sha(l.base_sha)||!sha(l.retour_qa_commit_sha))))throw Error('Livraison incompatible avec l’autorisation ou son retour QA.');
+     !sha(l.base_sha)||(n>1&&!sha(l.retour_qa_commit_sha)))throw Error('Livraison incompatible avec l’autorisation ou son retour QA.');
   const deliveryJob=()=>({role:'qa',signal:'delivery',value:l,relayCommit:s.deliveryCommit||s.head});
   if(!valid(v)||v.cycle_id!==l.cycle_id||v.etat!=='termine'||attempt(v)>0&&attempt(v)<n)return deliveryJob();
   if(attempt(v)!==n||v.source_sha!==l.source_sha||v.billet!==l.billet||v.autorisation_commit_sha!==l.autorisation_commit_sha||!['complet','incomplet'].includes(v.examen))throw Error('Vérification incompatible avec la livraison.');

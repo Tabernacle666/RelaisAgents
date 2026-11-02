@@ -158,6 +158,36 @@ async function validateRelayWeb(repo,head,job){
  }
  const refs=checkpoint?[job.value.source_sha,job.value.base_sha,job.value.autorisation_commit_sha]:[job.value.source_sha];
  if(!checkpoint&&job.signal!=='bootstrap'&&(job.role!=='dev'||['qa_return','diagnostic_return'].includes(job.signal)))refs.push(job.authorizationCommit||job.value.autorisation_commit_sha);
+ if(job.signal==='delivery'){
+  // Une base de travail peut être postérieure au commit autorisé (prise en
+  // charge et commits administratifs). Vérifier la filiation réelle plutôt
+  // que comparer base_sha et source_sha par égalité.
+  const l=job.value;
+  if(!/^[a-f0-9]{40}$/i.test(l.base_sha||'')||!/^[a-f0-9]{40}$/i.test(l.source_sha||'')||
+     !/^[a-f0-9]{40}$/i.test(l.autorisation_commit_sha||''))
+   throw Error('SHA de livraison manquant ou invalide.');
+  const authResponse=await fetch(base+'/raw/'+l.autorisation_commit_sha+'/collaboration/architecte/autorisation.json',
+   {credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+  if(!authResponse.ok)throw Error('Autorisation figée introuvable.');
+  const a=await authResponse.json();
+  if(a.etat!=='termine'||a.ferme!==true||a.branche_source!=='main'||
+     a.cycle_id!==l.cycle_id||a.billet!==l.billet||
+     !/^[a-f0-9]{40}$/i.test(a.source_sha||''))
+   throw Error('Livraison non compatible avec son autorisation figée.');
+  const api='https://api.github.com/repos'+base+'/compare/';
+  async function ancestor(from,to,requireCode=false){
+   const response=await fetch(api+from+'...'+to,{cache:'no-store',
+    headers:{Accept:'application/vnd.github+json'},signal:AbortSignal.timeout(15000)});
+   if(!response.ok)throw Error('Comparaison d’ascendance GitHub impossible (HTTP '+response.status+').');
+   const cmp=await response.json();
+   if(!['identical','ahead'].includes(cmp.status)||cmp.behind_by!==0||
+      cmp.base_commit?.sha!==from||cmp.merge_base_commit?.sha!==from||
+      cmp.head_commit?.sha!==to||(requireCode&&!(cmp.ahead_by>0)))
+    throw Error('Livraison rejetée : la base ou le code ne descend pas de la source autorisée.');
+  }
+  await ancestor(a.source_sha,l.base_sha);
+  await ancestor(l.base_sha,l.source_sha,true);
+ }
  if(job.signal==='delivery'&&Number(job.value.tentative)>1){
   refs.push(job.value.retour_qa_commit_sha);
   const raw=await fetch(base+'/raw/'+job.value.retour_qa_commit_sha+'/collaboration/verificateur/verification.json',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
