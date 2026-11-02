@@ -29,9 +29,12 @@
  }
  function select(s){
   const a=s.authorization,l=s.delivery,v=s.verification,b=s.programmerStatus;
-  if(!valid(a)||a.etat!=='termine'||a.ferme!==true)return null;
+  if(!valid(a)||a.etat!=='termine'||a.ferme!==true){
+   const m=s.mission;
+   return valid(m)&&m.etat==='a_instruire'?{role:'arch',signal:'bootstrap',value:m,relayCommit:s.missionCommit||s.head}:null;
+  }
   if(!['continuer','corriger','reculer'].includes(a.decision))return null;
-  if(typeof a.branche_source!=='string'||!a.branche_source)return null;
+  if(a.branche_source!=='main')throw Error('Seule main est autorisée.');
   if(typeof s.master!=='string'||!s.master.includes(a.cycle_id))throw Error('Le masterticket ne porte pas le cycle autorisé.');
   const authorized=!s.authorizationCommit||l?.autorisation_commit_sha===s.authorizationCommit;
   const delivered=authorized&&valid(l)&&l.cycle_id===a.cycle_id&&l.etat==='termine';
@@ -53,12 +56,28 @@
   if(attempt(v)!==n||v.source_sha!==l.source_sha||v.billet!==l.billet||v.autorisation_commit_sha!==l.autorisation_commit_sha||!['complet','incomplet'].includes(v.examen))throw Error('Vérification incompatible avec la livraison.');
   const relayCommit=s.verificationCommit||s.head;
   if(verdict(v,s.report)==='correction')return {role:'dev',signal:'qa_return',value:{...v,tentative_verifiee:n,tentative:n+1,base_sha:l.source_sha,branche_source:l.branche_source},verification:v,relayCommit,authorizationCommit:l.autorisation_commit_sha};
-  return {role:'arch',signal:'verification',value:v,relayCommit};
+  const d=s.diagnostic;
+  // QA conforme ouvre un droit au diagnostic local, jamais une autorisation architecturale.
+  if(!valid(d)||d.source_sha!==l.source_sha||d.billet!==l.billet||d.cycle_id!==l.cycle_id||
+     attempt(d)!==n||d.verification_commit_sha!==relayCommit||!sha(s.diagnosticCommit))return null;
+  if(['echec_compilation','echec_execution'].includes(d.etat))
+   return {role:'dev',signal:'diagnostic_return',value:{...d,tentative:n+1,base_sha:l.source_sha,branche_source:'main',autorisation_commit_sha:l.autorisation_commit_sha},relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
+  if(d.etat!=='complet'||typeof d.manifest_path!=='string')return null;
+  return {role:'arch',signal:'diagnostic',value:d,verification:v,relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
+ }
+ function waiting(s){
+  try{
+   const a=s.authorization,l=s.delivery,v=s.verification;
+   if(!valid(a)||!valid(l)||!valid(v)||v.etat!=='termine'||v.source_sha!==l.source_sha||v.cycle_id!==l.cycle_id||attempt(v)!==attempt(l))return null;
+   if(verdict(v,s.report)!=='architecte')return null;
+   if(s.diagnostic?.source_sha===l.source_sha&&s.diagnostic?.verification_commit_sha===s.verificationCommit)return null;
+   return {cycle_id:l.cycle_id,billet:l.billet,source_sha:l.source_sha,tentative:attempt(l),verification_commit_sha:s.verificationCommit};
+  }catch{return null;}
  }
  function claimMatches(job,c){
   if(!c||c.cycle_id!==job.value.cycle_id||c.billet!==job.value.billet||c.source_sha!==job.value.source_sha||c.role!==job.role||!sha(c.relais_commit_sha)||typeof c.prise_id!=='string')return false;
-  if(['qa_return','continuation'].includes(job.signal)&&c.relais_commit_sha!==job.relayCommit)return false;
+  if(['qa_return','diagnostic_return','continuation'].includes(job.signal)&&c.relais_commit_sha!==job.relayCommit)return false;
   return attempt(c)===attempt(job.value);
  }
- const api={select,sha,attempt,verdict,claimMatches};root.GitHubRelay=api;if(typeof module!=='undefined')module.exports=api;
+ const api={select,waiting,sha,attempt,verdict,claimMatches};root.GitHubRelay=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

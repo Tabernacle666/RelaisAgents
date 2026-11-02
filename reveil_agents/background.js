@@ -11,7 +11,7 @@ async function appendLog(who,status,detail=''){
  await chrome.storage.local.set({history:history.slice(0,40)});
 }
 function cleanSettings(s={}){
- const out={mode:'github',githubRepo:s.githubRepo||'https://github.com/Tabernacle666/ConsoleVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
+ const out={mode:'github',githubRepo:s.githubRepo||'https://github.com/Tabernacle666/CooLabVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
  for(const role of ['dev','qa','arch']){out[role+'Url']=s[role+'Url']||'';out[role+'Title']=s[role+'Title']||'';}
  out.devFresh=s.devFresh===true;out.qaFresh=s.qaFresh===true; // Architecte jamais renouvelé automatiquement.
  return out;
@@ -331,7 +331,7 @@ chrome.runtime.onMessage.addListener((msg,sender,respond)=>{
   if(!state?.state)throw Error('Impossible de lire l’avis de limite dans cet onglet.');
   return {ok:true,state:state.state,reason:state.reason||'',noticeCount:state.noticeCount,buttonCount:state.buttonCount,associated:state.associated,url:selected.tab.url,title:selected.tab.title||''};
  }
- const operations={ping:async()=>({ok:true,workerVersion:'1.8.8'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
+ const operations={ping:async()=>({ok:true,workerVersion:'1.9.0'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
  if(!Object.hasOwn(operations,msg?.type)){respond({ok:false,error:'Commande inconnue.'});return false;}
  operations[msg.type]().then(respond).catch(e=>respond({ok:false,error:String(e.message||e)}));return true;
 });

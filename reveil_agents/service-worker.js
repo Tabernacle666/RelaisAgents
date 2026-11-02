@@ -86,9 +86,12 @@ globalThis.ChatConversations = (() => {
  }
  function select(s){
   const a=s.authorization,l=s.delivery,v=s.verification,b=s.programmerStatus;
-  if(!valid(a)||a.etat!=='termine'||a.ferme!==true)return null;
+  if(!valid(a)||a.etat!=='termine'||a.ferme!==true){
+   const m=s.mission;
+   return valid(m)&&m.etat==='a_instruire'?{role:'arch',signal:'bootstrap',value:m,relayCommit:s.missionCommit||s.head}:null;
+  }
   if(!['continuer','corriger','reculer'].includes(a.decision))return null;
-  if(typeof a.branche_source!=='string'||!a.branche_source)return null;
+  if(a.branche_source!=='main')throw Error('Seule main est autorisée.');
   if(typeof s.master!=='string'||!s.master.includes(a.cycle_id))throw Error('Le masterticket ne porte pas le cycle autorisé.');
   const authorized=!s.authorizationCommit||l?.autorisation_commit_sha===s.authorizationCommit;
   const delivered=authorized&&valid(l)&&l.cycle_id===a.cycle_id&&l.etat==='termine';
@@ -110,14 +113,30 @@ globalThis.ChatConversations = (() => {
   if(attempt(v)!==n||v.source_sha!==l.source_sha||v.billet!==l.billet||v.autorisation_commit_sha!==l.autorisation_commit_sha||!['complet','incomplet'].includes(v.examen))throw Error('Vérification incompatible avec la livraison.');
   const relayCommit=s.verificationCommit||s.head;
   if(verdict(v,s.report)==='correction')return {role:'dev',signal:'qa_return',value:{...v,tentative_verifiee:n,tentative:n+1,base_sha:l.source_sha,branche_source:l.branche_source},verification:v,relayCommit,authorizationCommit:l.autorisation_commit_sha};
-  return {role:'arch',signal:'verification',value:v,relayCommit};
+  const d=s.diagnostic;
+  // QA conforme ouvre un droit au diagnostic local, jamais une autorisation architecturale.
+  if(!valid(d)||d.source_sha!==l.source_sha||d.billet!==l.billet||d.cycle_id!==l.cycle_id||
+     attempt(d)!==n||d.verification_commit_sha!==relayCommit||!sha(s.diagnosticCommit))return null;
+  if(['echec_compilation','echec_execution'].includes(d.etat))
+   return {role:'dev',signal:'diagnostic_return',value:{...d,tentative:n+1,base_sha:l.source_sha,branche_source:'main',autorisation_commit_sha:l.autorisation_commit_sha},relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
+  if(d.etat!=='complet'||typeof d.manifest_path!=='string')return null;
+  return {role:'arch',signal:'diagnostic',value:d,verification:v,relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
+ }
+ function waiting(s){
+  try{
+   const a=s.authorization,l=s.delivery,v=s.verification;
+   if(!valid(a)||!valid(l)||!valid(v)||v.etat!=='termine'||v.source_sha!==l.source_sha||v.cycle_id!==l.cycle_id||attempt(v)!==attempt(l))return null;
+   if(verdict(v,s.report)!=='architecte')return null;
+   if(s.diagnostic?.source_sha===l.source_sha&&s.diagnostic?.verification_commit_sha===s.verificationCommit)return null;
+   return {cycle_id:l.cycle_id,billet:l.billet,source_sha:l.source_sha,tentative:attempt(l),verification_commit_sha:s.verificationCommit};
+  }catch{return null;}
  }
  function claimMatches(job,c){
   if(!c||c.cycle_id!==job.value.cycle_id||c.billet!==job.value.billet||c.source_sha!==job.value.source_sha||c.role!==job.role||!sha(c.relais_commit_sha)||typeof c.prise_id!=='string')return false;
-  if(['qa_return','continuation'].includes(job.signal)&&c.relais_commit_sha!==job.relayCommit)return false;
+  if(['qa_return','diagnostic_return','continuation'].includes(job.signal)&&c.relais_commit_sha!==job.relayCommit)return false;
   return attempt(c)===attempt(job.value);
  }
- const api={select,sha,attempt,verdict,claimMatches};root.GitHubRelay=api;if(typeof module!=='undefined')module.exports=api;
+ const api={select,waiting,sha,attempt,verdict,claimMatches};root.GitHubRelay=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
 
 // --- delivery.js ---
@@ -543,6 +562,10 @@ async function readGitHubWeb(repo,branch,blockedHold){
  const claims=await Promise.all(['programmeur','verificateur','architecte'].map(async role=>{const value=await file('collaboration/'+role+'/prise_en_charge.json',true);return value?JSON.parse(value):null;}));
  const statusText=await file('collaboration/programmeur/statut.json',true);
  const programmerStatus=statusText?JSON.parse(statusText):null;
+ const missionText=await file('collaboration/architecte/mission.json',true);
+ const diagnosticText=await file('collaboration/diagnostic/retour.json',true);
+ const mission=missionText?JSON.parse(missionText):null;
+ const diagnostic=diagnosticText?JSON.parse(diagnosticText):null;
  const authorization=JSON.parse(texts[0]);
  async function lastChange(path){
   const historyPath=base+'/commits/'+head+'/'+path;
@@ -593,7 +616,9 @@ async function readGitHubWeb(repo,branch,blockedHold){
    report=await file('collaboration/verificateur/rapport.md',false,verificationCommit);
   }else deliveryCommit=await lastChange('collaboration/programmeur/livraison.json');
  }
- return {ok:true,head,claims,authorization,delivery,verification,report,master:texts[3],programmerStatus,statusCommit,authorizationCommit,statusSuperseded,deliveryCommit,verificationCommit};
+ const missionCommit=(!authorization?.etat&&mission?.etat==='a_instruire')?await lastChange('collaboration/architecte/mission.json'):null;
+ const diagnosticCommit=(diagnostic?.etat&&diagnostic?.cycle_id===delivery?.cycle_id&&diagnostic?.source_sha===delivery?.source_sha)?await lastChange('collaboration/diagnostic/retour.json'):null;
+ return {ok:true,head,claims,authorization,delivery,verification,report,master:texts[3],mission,missionCommit,diagnostic,diagnosticCommit,programmerStatus,statusCommit,authorizationCommit,statusSuperseded,deliveryCommit,verificationCommit};
  }catch(e){return {ok:false,error:stage+' : '+String(e?.message||e)};}
 }
 async function validateRelayWeb(repo,head,job){
@@ -606,14 +631,39 @@ async function validateRelayWeb(repo,head,job){
  if(!response.ok)throw Error('Impossible de confirmer le commit du relais.');
  const patch=await response.text();
  const changed=new Set(Array.from(patch.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm),m=>m[2]));
- const pairs={dev:['collaboration/architecte/autorisation.json','collaboration/architecte/masterticket.md'],qa:['collaboration/programmeur/livraison.json'],arch:['collaboration/verificateur/verification.json','collaboration/verificateur/rapport.md']};
+ const pairs={dev:['collaboration/architecte/autorisation.json'],qa:['collaboration/programmeur/livraison.json'],arch:['collaboration/diagnostic/retour.json']};
  const checkpoint=['blocked','continuation'].includes(job.signal);
- const required=checkpoint?['collaboration/programmeur/statut.json']:job.signal==='qa_return'?pairs.arch:pairs[job.role];
+ const required=checkpoint?['collaboration/programmeur/statut.json']:job.signal==='bootstrap'?['collaboration/architecte/mission.json','collaboration/architecte/masterticket.md']:job.signal==='qa_return'?['collaboration/verificateur/verification.json','collaboration/verificateur/rapport.md']:job.signal==='diagnostic_return'?['collaboration/diagnostic/retour.json']:pairs[job.role];
  if(!required.every(p=>changed.has(p)))throw Error('Le commit courant ne clôture pas ensemble les fichiers du relais. Republier le relais complet dans un même commit.');
  if(checkpoint){
   if(head!==job.relayCommit)throw Error('Le relais doit viser le commit exact du statut.');
   const raw=await fetch(base+'/raw/'+head+'/collaboration/programmeur/statut.json',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
   if(!raw.ok||canonicalJSON(await raw.json())!==canonicalJSON(job.value))throw Error('Statut figé non conforme au relais ; aucun envoi.');
+ }
+ if(['bootstrap','diagnostic','diagnostic_return'].includes(job.signal)){
+  const path=job.signal==='bootstrap'?'collaboration/architecte/mission.json':'collaboration/diagnostic/retour.json';
+  const raw=await fetch(base+'/raw/'+head+'/'+path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+  if(!raw.ok)throw Error('Preuve GitHub indisponible : '+path);
+  const frozen=await raw.json();
+  if(job.signal==='diagnostic_return'){
+   if(frozen.source_sha!==job.value.source_sha||!['echec_compilation','echec_execution'].includes(frozen.etat))throw Error('Échec de diagnostic non confirmé.');
+  }else if(canonicalJSON(frozen)!==canonicalJSON(job.value))throw Error('Preuve du relais modifiée.');
+  if(job.signal==='diagnostic'){
+   if(!/^diagnostics\/runs\/[0-9_]+\/manifest\.json$/.test(frozen.manifest_path))throw Error('Chemin du manifeste invalide.');
+   const m=await fetch(base+'/raw/'+head+'/'+frozen.manifest_path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+   if(!m.ok)throw Error('Manifeste absent sur GitHub.');
+   const manifest=await m.json();
+   if(manifest.complete!==true||manifest.source_commit!==frozen.source_sha||manifest.verification_commit_sha!==frozen.verification_commit_sha||
+      manifest.cycle_id!==frozen.cycle_id||manifest.billet!==frozen.billet||Number(manifest.tentative)!==Number(frozen.tentative)||
+      manifest.run_id!==frozen.run_id||!Array.isArray(manifest.jpeg_files)||manifest.jpeg_files.length<6||manifest.jpeg_files.length>12||
+      manifest.errors?.length)throw Error('Diagnostic incomplet, incorrect ou lié à un autre code.');
+   for(const name of manifest.jpeg_files){
+    if(!/^\d\d_[\w-]+\.jpg$/.test(name))throw Error('Nom de capture invalide.');
+    const jpg='diagnostics/runs/'+frozen.run_id+'/screenshots/'+name;
+    const im=await fetch(base+'/raw/'+head+'/'+jpg,{method:'HEAD',credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
+    if(!im.ok)throw Error('Capture GitHub manquante : '+jpg);
+   }
+  }
  }
  if(job.signal==='qa_return'){
   const raw=await fetch(base+'/raw/'+head+'/collaboration/verificateur/verification.json',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
@@ -625,13 +675,13 @@ async function validateRelayWeb(repo,head,job){
   if(!raw.ok||canonicalJSON(await raw.json())!==canonicalJSON(job.value))throw Error('Le signal figé ne correspond pas aux données du relais.');
  }
  const refs=checkpoint?[job.value.source_sha,job.value.base_sha,job.value.autorisation_commit_sha]:[job.value.source_sha];
- if(!checkpoint&&(job.role!=='dev'||job.signal==='qa_return'))refs.push(job.value.autorisation_commit_sha);
+ if(!checkpoint&&job.signal!=='bootstrap'&&(job.role!=='dev'||['qa_return','diagnostic_return'].includes(job.signal)))refs.push(job.authorizationCommit||job.value.autorisation_commit_sha);
  if(job.signal==='delivery'&&Number(job.value.tentative)>1){
   refs.push(job.value.retour_qa_commit_sha);
   const raw=await fetch(base+'/raw/'+job.value.retour_qa_commit_sha+'/collaboration/verificateur/verification.json',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
   if(!raw.ok)throw Error('Retour QA de la livraison corrigée inaccessible.');
   const v=await raw.json();
-  if(v.cycle_id!==job.value.cycle_id||v.billet!==job.value.billet||v.source_sha!==job.value.base_sha||v.autorisation_commit_sha!==job.value.autorisation_commit_sha||(v.tentative||1)!==job.value.tentative-1||v.destination&&v.destination!=='dev')throw Error('La correction ne prolonge pas le retour QA déclaré.');
+  if(v.cycle_id!==job.value.cycle_id||v.billet!==job.value.billet||v.source_sha!==job.value.base_sha||v.autorisation_commit_sha!==job.value.autorisation_commit_sha||(v.tentative||1)!==job.value.tentative-1 )throw Error('La correction ne prolonge pas la tentative précédente.');
  }
  for(const sha of refs){const r=await fetch(base+'/commit/'+sha,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Commit référencé inaccessible : '+sha);}
  return {ok:true};
@@ -667,6 +717,7 @@ async function githubPoll(token={cancelled:false}){
   const holdKey=JSON.stringify([s.githubRepo.toLowerCase().replace(/\/$/,''),s.githubBranch]);
   snap.blockedHold=blockedHolds[holdKey]||null;
   const job=GitHubRelay.select(snap);
+  const diagnosticWaiting=!job?GitHubRelay.waiting(snap):null;
   // Ancien statut bloqué : poursuivre côté dev, jamais demander un morcellement.
   if(job?.signal==='continuation')blockedHolds[holdKey]={value:job.value,relayCommit:job.relayCommit,authorizationCommit:job.authorizationCommit};
   else if(snap.blockedHold)delete blockedHolds[holdKey];
@@ -679,7 +730,9 @@ async function githubPoll(token={cancelled:false}){
    g.status='Reprise choisie : '+roleName[r.resumeRole]+' ; prochain relais disponible : '+roleName[job.role]+'. Attente du signal requis, aucun autre rôle lancé.';
    g.lastChecked=Date.now();await chrome.storage.local.set({githubState:g});await recordStatus();return;
   }
-  g.status=job?'Relais : '+job.role+' · '+job.value.cycle_id:'Attente d’un relais complet / autorisé';g.lastChecked=Date.now();
+  g.status=job?'Relais : '+job.role+' · '+job.value.cycle_id:
+    diagnosticWaiting?'À TOI : diagnostic attendu · '+diagnosticWaiting.billet+' · '+diagnosticWaiting.source_sha.slice(0,9):
+    'Attente d’un relais complet / autorisé';g.awaitingDiagnostic=diagnosticWaiting;g.lastChecked=Date.now();
   if(!job){await chrome.storage.local.set({githubState:g});await recordStatus();return;}
   const claim=(snap.claims||[])[{dev:0,qa:1,arch:2}[job.role]];
   const sameClaim=GitHubRelay.claimMatches(job,claim);
@@ -690,7 +743,7 @@ async function githubPoll(token={cancelled:false}){
    const restored=await DevRollover.restore(job,r.activationId);
    if(restored){rolloverRestored=true;s.devUrl=restored.newUrl;s.devTitle=restored.title;await appendLog('programmeur','Relève récupérée : '+restored.newUrl);}
   }
-  const correctionEvent=['qa_return','continuation'].includes(job.signal)||GitHubRelay.attempt(job.value)>1;
+  const correctionEvent=['qa_return','diagnostic_return','continuation'].includes(job.signal)||GitHubRelay.attempt(job.value)>1;
   const key=[s.githubRepo,s.githubBranch,job.role,job.value.cycle_id,...(correctionEvent?[job.signal,job.value.tentative||1,job.relayCommit]:[])].join('|');
   let pending=job.role==='arch'?null:await FreshChat.state(job.role);
   if(pending&&['ready','await-canonical','canonical'].includes(pending.phase)){
@@ -798,8 +851,11 @@ async function githubPoll(token={cancelled:false}){
   if(proof?.[0]?.result?.ok!==true)throw Error(proof?.[0]?.result?.error||'Validation du commit interrompue ; aucun envoi.');
   const rolePaths={dev:'programmeur',qa:'verificateur',arch:'architecte'};
   let prompt=`Dépôt ${s.githubRepo}. Ton rôle : ${rolePaths[job.role]}. Lis gabarit.md puis uniquement collaboration/${rolePaths[job.role]}/gabarit_${rolePaths[job.role]}.md. Relais figé au commit ${relayHead}, cycle ${job.value.cycle_id}, billet ${job.value.billet}, source ${job.value.source_sha}. Lis les fichiers de ce relais à ce commit et accomplis uniquement l’étape autorisée. Publie le résultat et son signal selon ton gabarit. Ne consulte pas les gabarits des autres rôles.`;
-  if(job.signal==='qa_return')prompt+=' Retour QA figé : '+job.relayCommit+'. Corrige uniquement les constats statiques de collaboration/verificateur/verification.json et rapport.md à ce commit. Le cycle, le billet et l’autorisation '+job.value.autorisation_commit_sha+' restent inchangés. Repars du code vérifié '+job.value.source_sha+' et publie la livraison corrigée avec tentative='+job.value.tentative+', base_sha='+job.value.source_sha+' et retour_qa_commit_sha='+job.relayCommit+'. Aucune demande de blocage ou de morcellement ; aucune intervention de l’Architecte pour ces corrections.';
-  if(job.signal==='continuation')prompt+=' Checkpoint de poursuite : '+job.relayCommit+'. Reprends le travail restant du même billet depuis '+job.value.source_sha+' sous l’autorisation '+job.value.autorisation_commit_sha+'. Le statut historique bloque n’autorise plus de morcellement. Conserve le travail et termine réellement le billet ; aucun signal de livraison incomplète. Les tests ConsoleVR restent réservés au créateur selon le gabarit.';
+  if(job.signal==='bootstrap')prompt+=' Amorçage : lis mission.json et masterticket.md. Autorise le billet en publiant autorisation.json, sans écrire le moteur.';
+   if(job.signal==='diagnostic')prompt+=' Diagnostic complet au commit '+job.relayCommit+' : lis retour.json, manifest, TOUS les JPG, métriques et QA statique ; tu es le seul décideur de l’acceptation, du correctif ou du recul par commit de réversion sur main.';
+   if(job.signal==='diagnostic_return')prompt+=' Échec de diagnostic au commit '+job.relayCommit+' : lis le manifest et les journaux, corrige directement sur main, puis renvoie au QA. Aucune intervention de l’Architecte.';
+   if(job.signal==='qa_return')prompt+=' Retour QA figé : '+job.relayCommit+'. Corrige uniquement les constats statiques de collaboration/verificateur/verification.json et rapport.md à ce commit. Le cycle, le billet et l’autorisation '+job.value.autorisation_commit_sha+' restent inchangés. Repars du code vérifié '+job.value.source_sha+' et publie la livraison corrigée avec tentative='+job.value.tentative+', base_sha='+job.value.source_sha+' et retour_qa_commit_sha='+job.relayCommit+'. Aucune intervention de l’Architecte pour ces corrections. Commit directement sur main sans confirmation.';
+  if(job.signal==='continuation')prompt+=' Checkpoint de poursuite : '+job.relayCommit+'. Reprends le travail restant du même billet depuis '+job.value.source_sha+' sous l’autorisation '+job.value.autorisation_commit_sha+'. Le statut historique bloque n’autorise plus de morcellement. Conserve le travail et termine réellement le billet ; aucun signal de livraison incomplète. Le diagnostic réel est réservé au propriétaire ; commit directement sur main sans confirmation.';
   if(GitHubRelay.attempt(job.value)>1)prompt+=' Tentative : '+GitHubRelay.attempt(job.value)+'.';
   const prise={schema_version:1,role:job.role,cycle_id:job.value.cycle_id,billet:job.value.billet,source_sha:job.value.source_sha,relais_commit_sha:relayHead,prise_id:Date.now()+'-'+Math.random().toString(36).slice(2),etat:'en_cours'};
   if(correctionEvent)prise.tentative=GitHubRelay.attempt(job.value);
@@ -835,7 +891,7 @@ async function githubPoll(token={cancelled:false}){
    const stop=Array.from(document.querySelectorAll('[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Arrêter la génération"],button[data-testid="stop-generation-button"]')).find(n=>n.isConnected&&n.getClientRects().length&&getComputedStyle(n).visibility!=='hidden');
    if(stop)return {ok:false,reason:'Bouton d’arrêt visible : '+(stop.getAttribute('aria-label')||stop.getAttribute('data-testid'))};
    return {ok:true};
-  },args:[['Ton rôle : '+rolePaths[job.role]+'.','cycle '+job.value.cycle_id,'billet '+job.value.billet,'source '+job.value.source_sha,...(job.signal==='qa_return'?['Retour QA figé : '+job.relayCommit]:[]),...(job.signal==='continuation'?['Checkpoint de poursuite : '+job.relayCommit]:[]),...(GitHubRelay.attempt(job.value)>1?['Tentative : '+GitHubRelay.attempt(job.value)+'.']:[])],prompt,receipt?.state==='retry']}),8000,'Lecture de l’onglet '+roleName[job.role]);
+  },args:[['Ton rôle : '+rolePaths[job.role]+'.','cycle '+job.value.cycle_id,'billet '+job.value.billet,'source '+job.value.source_sha,...(job.signal==='qa_return'?['Retour QA figé : '+job.relayCommit]:[]),...(job.signal==='diagnostic_return'?['Échec diagnostic figé : '+job.relayCommit]:[]),...(job.signal==='continuation'?['Checkpoint de poursuite : '+job.relayCommit]:[]),...(GitHubRelay.attempt(job.value)>1?['Tentative : '+GitHubRelay.attempt(job.value)+'.']:[])],prompt,receipt?.state==='retry']}),8000,'Lecture de l’onglet '+roleName[job.role]);
   if(token.cancelled)return;
   if(ready?.[0]?.result==='deja_transmis'){
    const observed=await Delivery.remember(receiptKey,{token:'observed-'+Date.now(),state:'sent',role:job.role,cycle:job.value.cycle_id,destination,relayHead,detail:'Message observé dans la conversation'});g.receiptToken=observed.entry.token;g.receiptState='sent';g.retryAvailable=true;
@@ -909,7 +965,7 @@ async function appendLog(who,status,detail=''){
  await chrome.storage.local.set({history:history.slice(0,40)});
 }
 function cleanSettings(s={}){
- const out={mode:'github',githubRepo:s.githubRepo||'https://github.com/Tabernacle666/ConsoleVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
+ const out={mode:'github',githubRepo:s.githubRepo||'https://github.com/Tabernacle666/CooLabVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
  for(const role of ['dev','qa','arch']){out[role+'Url']=s[role+'Url']||'';out[role+'Title']=s[role+'Title']||'';}
  out.devFresh=s.devFresh===true;out.qaFresh=s.qaFresh===true; // Architecte jamais renouvelé automatiquement.
  return out;
@@ -1229,7 +1285,7 @@ chrome.runtime.onMessage.addListener((msg,sender,respond)=>{
   if(!state?.state)throw Error('Impossible de lire l’avis de limite dans cet onglet.');
   return {ok:true,state:state.state,reason:state.reason||'',noticeCount:state.noticeCount,buttonCount:state.buttonCount,associated:state.associated,url:selected.tab.url,title:selected.tab.title||''};
  }
- const operations={ping:async()=>({ok:true,workerVersion:'1.8.8'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
+ const operations={ping:async()=>({ok:true,workerVersion:'1.9.0'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
  if(!Object.hasOwn(operations,msg?.type)){respond({ok:false,error:'Commande inconnue.'});return false;}
  operations[msg.type]().then(respond).catch(e=>respond({ok:false,error:String(e.message||e)}));return true;
 });
