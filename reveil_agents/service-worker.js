@@ -965,9 +965,9 @@ async function appendLog(who,status,detail=''){
  await chrome.storage.local.set({history:history.slice(0,40)});
 }
 function cleanSettings(s={}){
- const out={mode:'github',githubRepo:s.githubRepo||'https://github.com/Tabernacle666/CooLabVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
+ const out={mode:'github',githubRepo:s.githubRepo&&s.githubRepo!=='https://github.com/Tabernacle666/ConsoleVR'?s.githubRepo:'https://github.com/Tabernacle666/CooLabVR',githubBranch:s.githubBranch||'main',githubTabId:s.githubTabId,githubPollSeconds:30};
  for(const role of ['dev','qa','arch']){out[role+'Url']=s[role+'Url']||'';out[role+'Title']=s[role+'Title']||'';}
- out.devFresh=s.devFresh===true;out.qaFresh=s.qaFresh===true; // Architecte jamais renouvelé automatiquement.
+ out.devFresh=true;out.qaFresh=true; // Chats temporaires requis; architecte permanent.
  return out;
 }
 function validateSettings(s){githubConfig(s);const keys=['dev','qa','arch'].map(r=>conversationKey(s[r+'Url']));if(keys.some(x=>!x)||new Set(keys).size!==3)throw Error('Sélectionne trois conversations distinctes.');}
@@ -982,7 +982,7 @@ async function migrate(){
  return {settings,runtime};
 }
 async function setRoleFresh(role,enabled){
- if(!['dev','qa'].includes(role)||typeof enabled!=='boolean')throw Error('Seuls Programmeur et Vérificateur disposent de ce réglage.');
+ if(!['dev','qa'].includes(role)||enabled!==true)throw Error('Les conversations temporaires sont obligatoires pour Programmeur et QA.');
  const {settings={}}=await chrome.storage.local.get('settings');
  await chrome.storage.local.set({settings:{...settings,[role+'Fresh']:enabled}});
  return {ok:true};

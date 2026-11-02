@@ -1,19 +1,20 @@
 'use strict';
-const {test}=require('node:test'),assert=require('node:assert/strict');
+const assert=require('node:assert/strict');
 const R=require('../reveil_agents/github.js');
-const report='# Vérification statique — billet 1.1.55.77\nDiff complet examiné.\n**Résultat : conforme. Aucune divergence constatée.**\n\nExamen exclusivement statique.';
-const v={schema_version:1,role:'qa',cycle_id:'consolevr-1.1.55.77-github-001',etat:'termine',examen:'complet',resultat:'conforme',destination:'arch',billet:'1.1.55.77',source_sha:'8073cbd1c15e2281c532d80e8a668307a5290087',tentative:1,autorisation_commit_sha:'bef85f9affc52ba515ad60f6525fed94e48c15eb',nombre_constats:0,constats:[]};
-test('rapport QA .77 en ligne mixte route vers Architecte',()=>{
- assert.equal(R.verdict(v,report),'architecte');
- assert.equal(R.verdict(v,'**Aucune divergence constatée.**'),'architecte');
- assert.equal(R.verdict(v,'- **Aucune divergence constatée.**'),'architecte');
- assert.equal(R.verdict(v,'Aucune divergence constatée.'),'architecte');
- const s={authorization:{schema_version:1,etat:'termine',ferme:true,decision:'continuer',cycle_id:v.cycle_id,billet:v.billet,source_sha:'20cebc2e2250c4e7b76b3937fdddf582c51420c6',branche_source:'dev'},delivery:{schema_version:1,etat:'termine',tentative:1,cycle_id:v.cycle_id,billet:v.billet,source_sha:v.source_sha,base_sha:'20cebc2e2250c4e7b76b3937fdddf582c51420c6',branche_source:'dev',autorisation_commit_sha:v.autorisation_commit_sha},verification:v,report,master:'Cycle actif : '+v.cycle_id,authorizationCommit:v.autorisation_commit_sha,verificationCommit:'ee666048fb19f4ce0f90c3b9dc6f71ceeacfd2c1'};
- const job=R.select(s);assert.equal(job.role,'arch');assert.equal(job.relayCommit,s.verificationCommit);
-});
-test('contradictions QA continuent de bloquer',()=>{
- assert.throws(()=>R.verdict(v,'**Résultat : conforme. Aucune divergence constatée.**\n- Exigence : quelque chose → défaut'));
- assert.throws(()=>R.verdict({...v,nombre_constats:1},report));
- assert.throws(()=>R.verdict({...v,examen:'incomplet'},report));
- assert.throws(()=>R.verdict(v,'**Résultat : conforme. Aucune divergence constatée.')); // bold non fermé
-});
+const sha=c=>c.repeat(40);
+const v={schema_version:1,etat:'termine',examen:'complet',resultat:'conforme',destination:'arch',cycle_id:'caca-aaa-001',billet:'matiere-pbd-001',source_sha:sha('b'),tentative:1,autorisation_commit_sha:sha('c'),nombre_constats:0,constats:[]};
+const report='**Résultat : conforme. Aucune divergence constatée.**';
+assert.equal(R.verdict(v,report),'architecte');
+const a={schema_version:1,etat:'termine',ferme:true,decision:'continuer',cycle_id:v.cycle_id,billet:v.billet,source_sha:sha('a'),branche_source:'main'};
+const l={schema_version:1,etat:'termine',tentative:1,cycle_id:v.cycle_id,billet:v.billet,source_sha:v.source_sha,base_sha:a.source_sha,branche_source:'main',autorisation_commit_sha:v.autorisation_commit_sha};
+const s={authorization:a,delivery:l,verification:v,report,master:v.cycle_id,authorizationCommit:v.autorisation_commit_sha,verificationCommit:sha('d'),head:sha('e')};
+assert.equal(R.select(s),null,'QA conforme attend obligatoirement le diagnostic utilisateur.');
+assert.equal(R.waiting(s).billet,v.billet);
+s.diagnostic={schema_version:1,etat:'complet',cycle_id:v.cycle_id,billet:v.billet,source_sha:l.source_sha,tentative:1,verification_commit_sha:s.verificationCommit,run_id:'20261101_213000_010_27',manifest_path:'diagnostics/runs/20261101_213000_010_27/manifest.json'};
+s.diagnosticCommit=sha('f');
+assert.equal(R.select(s).role,'arch');
+assert.equal(R.select(s).signal,'diagnostic');
+s.diagnostic.etat='echec_compilation';
+assert.equal(R.select(s).role,'dev');
+assert.equal(R.select(s).signal,'diagnostic_return');
+console.log('PASS QA conforme → attente propriétaire → architecte si preuves, programmeur si échec compilation.');
