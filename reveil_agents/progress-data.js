@@ -9,10 +9,10 @@ const sort=a=>(a||[]).filter(x=>Number.isFinite(x.at)).slice().sort((x,y)=>x.at-
 function master(text){
  const s=String(text||'');
  const heading=s.match(/^#\s*(.+?)(?:\s+[—–-]\s*masterticket|\s+masterticket)/im);
- const project=heading?.[1]?.trim()||null;
+ const project=heading?.[1]?.trim()||s.match(/^#\s*MASTER SHIT TICKET\s*[—–-]\s*([^\n]+)/im)?.[1]?.trim()||null;
  const title=s.match(/^#.*?masterticket\s+(\d+\.\d+\.\d+)(?:\.x)?/im);
  const mandate=s.match(/\bMandat\s*:\s*([^\n]+)/i);
- const goal=mandate?.[1]?.split(/\b(?:Terme estimé|Aucun agent|Le créateur)\b/)[0]?.trim()||null;
+ const goal=mandate?.[1]?.split(/\b(?:Terme estimé|Aucun agent|Le créateur)\b/)[0]?.trim()||s.match(/^Objectif\s*:\s*([^\n]+)/im)?.[1]?.trim()||null;
  const target=s.match(/\bTerme estimé\s*:\s*(\d+\.\d+\.\d+\.\d+)/i);
  const admin=s.match(/^Billets administratifs\s*:\s*([^\n]+)/im);
  const administrative=admin?[...new Set(admin[1].match(/\d+\.\d+\.\d+\.\d+/g)||[])]:[];

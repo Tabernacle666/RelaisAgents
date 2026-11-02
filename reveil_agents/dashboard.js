@@ -5,7 +5,7 @@ const paths={
  devStart:'collaboration/programmeur/prise_en_charge.json',devEnd:'collaboration/programmeur/livraison.json',
  qaStart:'collaboration/verificateur/prise_en_charge.json',qaEnd:'collaboration/verificateur/verification.json',
  archStart:'collaboration/architecte/prise_en_charge.json',archEnd:'collaboration/architecte/autorisation.json',
- devStatus:'collaboration/programmeur/statut.json',master:'collaboration/architecte/masterticket.md'
+ devStatus:'collaboration/programmeur/statut.json',diagnosticEnd:'collaboration/diagnostic/retour.json',master:'collaboration/architecte/masterticket.md'
 };
 const fmt=new Intl.DateTimeFormat('fr-CA',{timeZone:'America/Toronto',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
 const fmtDay=new Intl.DateTimeFormat('fr-CA',{timeZone:'America/Toronto',month:'short',day:'numeric'});
@@ -163,11 +163,17 @@ function tooltip(node,text){
 }
 function decorateGantt(raw,meta={}){
  gantt=G.reconstruct(raw);
+ const qa=(raw.qaEnd||[]).map(c=>({sha:c.sha,at:stamp(c),data:meta['qa:'+c.sha]}));
+ const diag=(raw.diagnosticEnd||[]).map(c=>({sha:c.sha,at:stamp(c),data:meta['diag:'+c.sha]}));
+ const waiting=G.userIntervals(qa,diag);
+ gantt.all.push(...waiting);gantt.all.sort((a,b)=>a.from-b.from);
+ gantt.perRole.user=waiting;
  for(const e of gantt.all){
+  if(e.role==='user')continue;
   const kind=e.role==='dev'?'delivery':e.role==='qa'?'qa':'auth',data=meta[kind+':'+e.endSha];
   e.ticket=data?.billet||e.version||'—';
   e.status=e.role==='dev'?(data?.etat==='termine'?'Livré · tentative '+(data.tentative||1):e.endMessage):
-   e.role==='qa'?(data?.resultat==='conforme'?'Conforme → architecte':data?.resultat==='a_corriger'?'À corriger → programmeur':e.endMessage):
+   e.role==='qa'?(data?.resultat==='conforme'?'Conforme → diagnostic utilisateur':data?.resultat==='a_corriger'?'À corriger → programmeur':e.endMessage):
    (data?.decision?'Décision : '+data.decision:e.endMessage);
  }
 }
@@ -378,9 +384,9 @@ function drawGauges(){if(!progress)return;
  drawTelemetry();
 }
 function drawGantt(){if(!gantt)return;
- const period=Number($('range').value),now=Date.now(),from=now-period*3600_000,roles=['arch','qa','dev'];
+ const period=Number($('range').value),now=Date.now(),from=now-period*3600_000,roles=['arch','user','qa','dev'];
  const viewer=$('timeline'),events=gantt.all.filter(e=>(e.open?now:e.to)>=from&&e.from<=now);
- const rowHeight=44,rectHeight=40,labelsWidth=114,H=54+roles.length*rowHeight;
+ const rowHeight=44,rectHeight=40,labelsWidth=136,H=54+roles.length*rowHeight;
  const W=Math.max(100,viewer.clientWidth-labelsWidth),scale=W/(period*3600_000);
  const container=el('div');container.className='timeline-fit';container.style.height=H+'px';
  const labels=el('div','timeline-labels');labels.append(el('div','timeline-top','RÔLE'));
@@ -414,6 +420,7 @@ function drawGantt(){if(!gantt)return;
  container.append(chart);viewer.replaceChildren(container);
 }
 function renderHeadline(data){const settings=data?.settings||{},state=data?.githubState||{};const names={dev:'Le Programmeur',qa:'QA',arch:'L’Architecte'};
+ if(data?.runtime?.enabled&&state.awaitingDiagnostic){const d=state.awaitingDiagnostic;$('activeRole').textContent='À TOI : diagnostic attendu pour '+d.billet+' · '+d.source_sha.slice(0,9)+' · pull → diagnostic → push';return;}
  const role=state.selectedRole,t=P.ticket(state.cycle)||P.ticket(state.status)||null;
  $('activeRole').textContent=(data?.runtime?.enabled&&role&&t)?`${names[role]||role} travaille sur le billet ${t}`:
   (data?.runtime?.enabled?`Relais actif · ${t?`billet ${t} · `:''}aucun rôle en travail confirmé`:'Relais arrêté');
@@ -426,10 +433,10 @@ async function load(force=false){
  if(loading)return loading;
  loading=(async()=>{
  const storage=await chrome.storage.local.get(['settings','runtime','githubState','observatoryCache']);
- repoPath=parseRepo(storage.settings?.githubRepo||'https://github.com/Tabernacle666/ConsoleVR');branch=storage.settings?.githubBranch||'main';
+ repoPath=parseRepo(storage.settings?.githubRepo||'https://github.com/Tabernacle666/CooLabVR');branch=storage.settings?.githubBranch||'main';
  if(!repoPath)throw Error('Dépôt GitHub non reconnu.');renderHeadline(storage);
  const cache=storage.observatoryCache;
- const cached=cache?.schema===4&&cache?.repo===repoPath&&cache?.branch===branch;
+ const cached=cache?.schema===5&&cache?.repo===repoPath&&cache?.branch===branch;
  if(!force&&cached&&(!progress||!gantt)){rehydrate(cache);notice('Historique en cache · vérification de la branche GitHub…');}
  // Never return solely because a cached snapshot is young: several agent steps fit into 8 minutes.
  let currentHead;
@@ -451,9 +458,10 @@ async function load(force=false){
   decorateGantt(raw,metadata);
   const mainMaster=await rawFile(branch,paths.master),m=P.master(mainMaster);
   renderIdentity(m);
-  const [d,q,a,s]=await Promise.all([
+  const [d,q,a,s,diag]=await Promise.all([
    snapshots(raw.devEnd,paths.devEnd,metadata,'delivery'),snapshots(raw.qaEnd,paths.qaEnd,metadata,'qa'),
-   snapshots(raw.archEnd,paths.archEnd,metadata,'auth'),snapshots(raw.devStatus,paths.devStatus,metadata,'status')
+   snapshots(raw.archEnd,paths.archEnd,metadata,'auth'),snapshots(raw.devStatus,paths.devStatus,metadata,'status'),
+   snapshots(raw.diagnosticEnd,paths.diagnosticEnd,metadata,'diag')
   ]);
   decorateGantt(raw,metadata);
   const latestMaster=commitEvents(raw.master).at(-1);
@@ -462,16 +470,16 @@ async function load(force=false){
   progress=P.calculate({...inputs,plans:initialPlans});
   drawGantt();plots();notice('Décisions des rôles lues · chargement des révisions historiques de la cible…');
   const targets=await snapshots(raw.master,paths.master,metadata,'master');
-  const misses=d.miss+q.miss+a.miss+s.miss+targets.miss;
+  const misses=d.miss+q.miss+a.miss+s.miss+diag.miss+targets.miss;
   progress=P.calculate({...inputs,plans:targets.events.filter(e=>e.data?.target).map(e=>({at:e.at,sha:e.sha,target:e.data.target,administrative:e.data.administrative||[]}))});
   progress.fileDiffCache=cache?.repo===repoPath&&cache?.branch===branch?{...(cache.progress?.fileDiffCache||{})}:{};
-  const next={schema:4,repo:repoPath,branch,head:currentHead,at:Date.now(),misses,raw,metadata,master:m,progress};
+  const next={schema:5,repo:repoPath,branch,head:currentHead,at:Date.now(),misses,raw,metadata,master:m,progress};
   await chrome.storage.local.set({observatoryCache:next});
   drawGantt();plots();
   const view=progress;void hydrateFragile(view,cache,currentHead).catch(e=>notice('Données de reprise : '+e.message,true));
   const n=progress.accepted.length,planned=progress.plans.at(-1)?.total;
   notice(`Historique GitHub consulté · ${new Date().toLocaleTimeString('fr-CA')} · ${repoPath} / ${branch}`+(misses?' · '+misses+' document(s) historiques indisponibles':''),misses>0);
- }catch(error){if(cache?.schema===4&&cache?.repo===repoPath&&cache?.branch===branch){rehydrate(cache);notice('Données en cache · GitHub indisponible : '+error.message,true)}else throw error;}
+ }catch(error){if(cache?.schema===5&&cache?.repo===repoPath&&cache?.branch===branch){rehydrate(cache);notice('Données en cache · GitHub indisponible : '+error.message,true)}else throw error;}
  finally{$('reload').disabled=false;}
  })();try{await loading}finally{loading=null}
 }
