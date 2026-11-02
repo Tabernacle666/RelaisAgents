@@ -414,7 +414,8 @@ function drawGantt(){if(!gantt)return;
    '\n'+(e.open?'En cours : ':'Fin : ')+fmt.format(last)+'\nDurée : '+minutes((last-e.from)/60000)+
    '\nStatut de sortie : '+(e.status||e.endMessage||'—');
   tooltip(block,tip);chart.append(block);
-  if(w>65)chart.append(svg('text',{x:x+5,y:y+24,'font-size':10,fill:paint.color,'font-weight':800,'pointer-events':'none'},e.ticket||e.version||'Billet'));
+  if(w>65)chart.append(svg('text',{x:x+5,y:y+24,'font-size':10,fill:paint.color,'font-weight':800,'pointer-events':'none'},
+   e.role==='user'?'À TOI · '+minutes((last-e.from)/60000):(e.ticket||e.version||'Billet')));
  }
  chart.append(svg('line',{x1:W-1,y1:0,x2:W-1,y2:H,stroke:'#e9f3ff','stroke-width':2,'stroke-dasharray':'4 4','pointer-events':'none'}));
  container.append(chart);viewer.replaceChildren(container);
