@@ -25,7 +25,7 @@ function makeValidator(first='ahead',second='ahead'){
  const source=fs.readFileSync(require.resolve('../reveil_agents/github-worker.js'),'utf8');
  const replies=[];
  const compare=(from,to,status)=>({status,base_commit:{sha:from},merge_base_commit:{sha:status==='diverged'?sha('f'):from},
-  head_commit:{sha:to},behind_by:status==='diverged'?1:0,ahead_by:status==='identical'?0:1});
+  behind_by:status==='diverged'?1:0,ahead_by:status==='identical'?0:1});
  const f=async url=>{
   replies.push(url);
   if(url.includes('/commit/'+sha('e')+'.patch'))

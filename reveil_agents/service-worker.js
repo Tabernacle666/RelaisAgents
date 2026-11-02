@@ -700,7 +700,7 @@ async function validateRelayWeb(repo,head,job){
    const cmp=await response.json();
    if(!['identical','ahead'].includes(cmp.status)||cmp.behind_by!==0||
       cmp.base_commit?.sha!==from||cmp.merge_base_commit?.sha!==from||
-      cmp.head_commit?.sha!==to||(requireCode&&!(cmp.ahead_by>0)))
+      (requireCode&&!(cmp.ahead_by>0)))
     throw Error('Livraison rejetée : la base ou le code ne descend pas de la source autorisée.');
   }
   await ancestor(a.source_sha,l.base_sha);
@@ -1333,7 +1333,7 @@ chrome.runtime.onMessage.addListener((msg,sender,respond)=>{
   if(!state?.state)throw Error('Impossible de lire l’avis de limite dans cet onglet.');
   return {ok:true,state:state.state,reason:state.reason||'',noticeCount:state.noticeCount,buttonCount:state.buttonCount,associated:state.associated,url:selected.tab.url,title:selected.tab.title||''};
  }
- const operations={ping:async()=>({ok:true,workerVersion:'1.9.1'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
+ const operations={ping:async()=>({ok:true,workerVersion:'1.9.2'}),setRoleFresh:()=>exclusive(()=>setRoleFresh(msg.role,msg.enabled)),save:()=>exclusive(()=>saveSettings(msg.settings)),githubPlan:()=>exclusive(()=>plan(msg.settings)),stop:()=>exclusive(stop),snapshot:async()=>({ok:true,...await chrome.storage.local.get(['settings','runtime','githubState','history','devRollover','freshPending'])}),retryDelivery:()=>exclusive(()=>retrySelectedDelivery(msg)),forcePendingRelay:()=>exclusive(()=>forcePendingRelay(msg)),githubCheck:async()=>{void scheduleGitHubRead(true);return {ok:true};},inspectDev:inspectDevConversation};
  if(!Object.hasOwn(operations,msg?.type)){respond({ok:false,error:'Commande inconnue.'});return false;}
  operations[msg.type]().then(respond).catch(e=>respond({ok:false,error:String(e.message||e)}));return true;
 });

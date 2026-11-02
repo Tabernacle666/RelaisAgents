@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Relais GitHub des agents",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Relais GitHub des agents, conversations par role et Gantt.",
   "permissions": [
     "alarms",

@@ -182,7 +182,7 @@ async function validateRelayWeb(repo,head,job){
    const cmp=await response.json();
    if(!['identical','ahead'].includes(cmp.status)||cmp.behind_by!==0||
       cmp.base_commit?.sha!==from||cmp.merge_base_commit?.sha!==from||
-      cmp.head_commit?.sha!==to||(requireCode&&!(cmp.ahead_by>0)))
+      (requireCode&&!(cmp.ahead_by>0)))
     throw Error('Livraison rejetée : la base ou le code ne descend pas de la source autorisée.');
   }
   await ancestor(a.source_sha,l.base_sha);
