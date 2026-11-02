@@ -118,7 +118,7 @@ globalThis.ChatConversations = (() => {
   if(!valid(d)||d.source_sha!==l.source_sha||d.billet!==l.billet||d.cycle_id!==l.cycle_id||
      attempt(d)!==n||d.verification_commit_sha!==relayCommit||!sha(s.diagnosticCommit))return null;
   if(['echec_compilation','echec_execution'].includes(d.etat))
-   return {role:'dev',signal:'diagnostic_return',value:{...d,tentative:n+1,base_sha:l.source_sha,branche_source:'main',autorisation_commit_sha:l.autorisation_commit_sha},relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
+   return {role:'dev',signal:'diagnostic_return',value:{...d,tentative:n+1,base_sha:l.source_sha,retour_qa_commit_sha:relayCommit,branche_source:'main',autorisation_commit_sha:l.autorisation_commit_sha},relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
   if(d.etat!=='complet'||typeof d.manifest_path!=='string')return null;
   return {role:'arch',signal:'diagnostic',value:d,verification:v,relayCommit:s.diagnosticCommit,authorizationCommit:l.autorisation_commit_sha};
  }
